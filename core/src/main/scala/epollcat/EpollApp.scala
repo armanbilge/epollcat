@@ -27,10 +27,10 @@ trait EpollApp extends IOApp {
 
   override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
 
-  implicit final def epoll: Epoll[IO] =
+  implicit final lazy val epoll: Epoll[IO] =
     Epoll(runtime.compute.asInstanceOf[EpollExecutorScheduler])
 
-  implicit final def console: Console[IO] =
+  implicit final lazy val console: Console[IO] =
     instances
       .console
       .epollConsole(IO.asyncForIO, IO.consoleForIO, epoll)
