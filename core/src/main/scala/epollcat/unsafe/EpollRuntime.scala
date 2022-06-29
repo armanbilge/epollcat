@@ -22,7 +22,7 @@ import cats.effect.unsafe.Scheduler
 
 import scala.concurrent.ExecutionContext
 
-object EpollIORuntime {
+object EpollRuntime {
   def defaultExecutionContextScheduler(): ExecutionContext with Scheduler =
     EpollExecutorScheduler()
 

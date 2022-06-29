@@ -18,14 +18,14 @@ package epollcat
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import epollcat.unsafe.EpollIORuntime
+import epollcat.unsafe.EpollRuntime
 import munit.CatsEffectSuite
 
 import scala.concurrent.duration._
 
 class EpollcatSuite extends CatsEffectSuite {
 
-  override implicit def munitIoRuntime: IORuntime = EpollIORuntime.global
+  override implicit def munitIoRuntime: IORuntime = EpollRuntime.global
 
   test("ceding") {
     val result = IO.ref[List[String]](Nil).flatMap { ref =>
