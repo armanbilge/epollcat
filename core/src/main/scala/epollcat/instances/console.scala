@@ -28,7 +28,9 @@ object console extends ConsoleInstances
 
 trait ConsoleInstances {
 
-  implicit def epollConsole[F[_]: Apply](implicit console: Console[F], epoll: Epoll[F]): Console[F] =
+  implicit def epollConsole[F[_]: Apply](
+      implicit console: Console[F],
+      epoll: Epoll[F]): Console[F] =
     new Console[F] {
 
       def readLineWithCharset(charset: Charset): F[String] =
