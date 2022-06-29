@@ -39,10 +39,12 @@ private[epollcat] final class EpollExecutorScheduler private (
 
   private[this] val callbacks: Set[Runnable] = Collections.newSetFromMap(new IdentityHashMap)
 
-  override def poll(timeout: Duration): Boolean =
-    if (callbacks.isEmpty()) false
+  override def poll(timeout: Duration): Boolean = {
+    val timeoutIsInfinite = timeout > Int.MaxValue.millis
+
+    if (timeoutIsInfinite && callbacks.isEmpty()) false
     else {
-      val timeoutMillis = if (timeout > Int.MaxValue.millis) -1 else timeout.toMillis.toInt
+      val timeoutMillis = if (timeoutIsInfinite) -1 else timeout.toMillis.toInt
 
       val events = stackalloc[epoll_event_t](maxEvents.toLong)
 
@@ -63,6 +65,7 @@ private[epollcat] final class EpollExecutorScheduler private (
 
       !callbacks.isEmpty()
     }
+  }
 
   def monitor(fd: Int, events: Int, task: Runnable): Runnable = {
 
