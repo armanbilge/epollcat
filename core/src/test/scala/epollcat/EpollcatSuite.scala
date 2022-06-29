@@ -26,11 +26,12 @@ class EpollcatSuite extends CatsEffectSuite {
   override implicit def munitIoRuntime: IORuntime = EpollIORuntime.global
 
   test("ceding") {
-    IO.ref[List[String]](Nil).flatMap { ref =>
+    val result = IO.ref[List[String]](Nil).flatMap { ref =>
       def go(s: String) = (ref.getAndUpdate(s :: _) *> IO.cede).replicateA_(3)
-      val result = IO.both(go("ping"), go("pong")) *> ref.get
-      result.assertEquals(List("pong", "ping", "pong", "ping", "pong", "ping"))
+      IO.both(go("ping"), go("pong")) *> ref.get
     }
+
+    result.assertEquals(List("pong", "ping", "pong", "ping", "pong", "ping"))
   }
 
 }
