@@ -23,9 +23,7 @@ lazy val core = project
     )
   )
 
-lazy val example = project
-  .in(file("example"))
-  .enablePlugins(ScalaNativePlugin, NoPublishPlugin)
-  .dependsOn(core)
+lazy val example =
+  project.in(file("example")).enablePlugins(ScalaNativePlugin, NoPublishPlugin).dependsOn(core)
 
 ThisBuild / resolvers += "s01" at "https://s01.oss.sonatype.org/content/repositories/snapshots/"
