@@ -24,11 +24,10 @@ import java.util.Set
 import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.scalanative.libc.errno
-import scala.scalanative.posix.inttypes._
+import scala.scalanative.posix.unistd
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
-import scala.scalanative.posix.unistd
 
 private[epollcat] final class EpollExecutorScheduler private (
     private[this] val epfd: Int,
@@ -53,7 +52,7 @@ private[epollcat] final class EpollExecutorScheduler private (
       if (triggeredEvents >= 0) {
         var i = 0
         while (i < triggeredEvents) {
-          val event = events + i * 12
+          val event = events + i.toLong * 12
           val task = Intrinsics
             .castRawPtrToObject(toRawPtr(!((event + 4).asInstanceOf[Ptr[Ptr[Byte]]])))
             .asInstanceOf[Runnable]
