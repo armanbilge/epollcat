@@ -30,6 +30,7 @@ import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 
 import epoll._
+import scala.scalanative.posix.unistd
 
 private[epollcat] final class EpollExecutorScheduler private (
     private[this] val epfd: Int,
@@ -87,6 +88,10 @@ private[epollcat] final class EpollExecutorScheduler private (
     if (epoll_ctl(epfd, op, fd, event) != 0)
       throw new RuntimeException(s"epoll_ctl: ${errno.errno}")
   }
+
+  def close(): Unit =
+    if (unistd.close(epfd) != 0)
+      throw new RuntimeException(s"close: ${errno.errno}")
 
 }
 

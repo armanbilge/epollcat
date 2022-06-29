@@ -27,11 +27,13 @@ object EpollRuntime {
   def apply(): IORuntime = apply(IORuntimeConfig())
 
   def apply(config: IORuntimeConfig): IORuntime = {
-    val ecScheduler = defaultExecutionContextScheduler()
-    IORuntime(ecScheduler, ecScheduler, ecScheduler, () => (), config)
+    val (ecScheduler, shutdown) = defaultExecutionContextScheduler()
+    IORuntime(ecScheduler, ecScheduler, ecScheduler, shutdown, config)
   }
 
-  def defaultExecutionContextScheduler(): ExecutionContext with Scheduler =
-    EpollExecutorScheduler()
+  def defaultExecutionContextScheduler(): (ExecutionContext with Scheduler, () => Unit) = {
+    val ecScheduler = EpollExecutorScheduler()
+    (ecScheduler, () => ecScheduler.close())
+  }
 
 }
