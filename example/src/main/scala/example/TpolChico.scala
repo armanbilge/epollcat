@@ -36,7 +36,7 @@ object TpolChico extends EpollApp.Simple {
 
     val race = IO.race(printismsLoop, readLoop)
 
-    race.timeoutTo(30.seconds, IO.println("ffs")).void
+    race.void.timeoutTo(30.seconds, IO.println("ffs"))
   }
 
   val tpolecatisms = List(
