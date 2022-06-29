@@ -28,14 +28,14 @@ import scala.scalanative.posix.inttypes._
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
-
-import epoll._
 import scala.scalanative.posix.unistd
 
 private[epollcat] final class EpollExecutorScheduler private (
     private[this] val epfd: Int,
     private[this] val maxEvents: Int)
     extends PollingExecutorScheduler {
+
+  import epoll._
 
   private[this] val callbacks: Set[Runnable] = Collections.newSetFromMap(new IdentityHashMap)
 
@@ -96,6 +96,8 @@ private[epollcat] final class EpollExecutorScheduler private (
 }
 
 private[epollcat] object EpollExecutorScheduler {
+
+  import epoll._
 
   def apply(): EpollExecutorScheduler = apply(64)
 
