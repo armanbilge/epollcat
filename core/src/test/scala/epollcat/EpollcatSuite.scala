@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 
 class EpollcatSuite extends CatsEffectSuite {
 
-  override implicit val munitIoRuntime: IORuntime = EpollRuntime()
+  override implicit lazy val munitIoRuntime: IORuntime = EpollRuntime()
 
   test("ceding") {
     val result = IO.ref[List[String]](Nil).flatMap { ref =>
