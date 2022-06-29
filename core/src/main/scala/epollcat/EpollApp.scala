@@ -18,6 +18,7 @@ package epollcat
 
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.std.Console
 import cats.effect.unsafe.IORuntime
 import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
@@ -28,6 +29,9 @@ trait EpollApp extends IOApp {
 
   implicit final def epoll: Epoll[IO] =
     Epoll(runtime.compute.asInstanceOf[EpollExecutorScheduler])
+
+  implicit final def console: Console[IO] =
+    instances.console.epollConsole(IO.asyncForIO, IO.consoleForIO, epoll)
 
 }
 
