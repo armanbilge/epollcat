@@ -38,29 +38,30 @@ private[epollcat] final class EpollExecutorScheduler private (
 
   private[this] val callbacks: Set[Runnable] = Collections.newSetFromMap(new IdentityHashMap)
 
-  override def poll(timeout: Duration): Boolean = {
+  override def poll(timeout: Duration): Boolean =
+    if (callbacks.isEmpty()) false
+    else {
+      val timeoutMillis = if (timeout > Int.MaxValue.millis) -1 else timeout.toMillis.toInt
 
-    val timeoutMillis = if (timeout > Int.MaxValue.millis) -1 else timeout.toMillis.toInt
+      val events = stackalloc[epoll_event_t](maxEvents.toLong)
 
-    val events = stackalloc[epoll_event_t](maxEvents.toLong)
+      val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
 
-    val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
-
-    if (triggeredEvents >= 0) {
-      var i = 0
-      while (i < triggeredEvents) {
-        val event = events(i.toLong)
-        val task = Intrinsics.castRawPtrToObject(toRawPtr(event._2)).asInstanceOf[Runnable]
-        callbacks.remove(task)
-        execute(task)
-        i += 1
+      if (triggeredEvents >= 0) {
+        var i = 0
+        while (i < triggeredEvents) {
+          val event = events(i.toLong)
+          val task = Intrinsics.castRawPtrToObject(toRawPtr(event._2)).asInstanceOf[Runnable]
+          callbacks.remove(task)
+          execute(task)
+          i += 1
+        }
+      } else {
+        reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
       }
-    } else {
-      reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
-    }
 
-    !callbacks.isEmpty()
-  }
+      !callbacks.isEmpty()
+    }
 
   def monitor(fd: Int, events: Int, task: Runnable): Runnable = {
 
