@@ -17,33 +17,39 @@
 package epollcat
 package instances
 
-import cats.Apply
 import cats.Show
 import cats.effect.std.Console
 import cats.syntax.all._
 
 import java.nio.charset.Charset
+import cats.effect.kernel.Resource
+import cats.effect.kernel.MonadCancelThrow
 
 object console extends ConsoleInstances
 
 trait ConsoleInstances {
 
-  implicit def epollConsole[F[_]: Apply](
-      implicit console: Console[F],
-      epoll: Epoll[F]): Console[F] =
-    new Console[F] {
+  implicit def epollConsole[F[_]](
+      implicit F: MonadCancelThrow[F],
+      console: Console[F],
+      epoll: Epoll[F]): Resource[F, Console[F]] =
+    epoll.register(0).map { ctl =>
+      new Console[F] {
 
-      def readLineWithCharset(charset: Charset): F[String] =
-        epoll.monitor(0, Epoll.Event.EpollIn) *> console.readLineWithCharset(charset)
+        def readLineWithCharset(charset: Charset): F[String] =
+          F.uncancelable { poll =>
+            poll(ctl.monitor(Epoll.Event.EpollIn)) *> console.readLineWithCharset(charset)
+          }
 
-      def print[A](a: A)(implicit S: Show[A]): F[Unit] = console.print(a)
+        def print[A](a: A)(implicit S: Show[A]): F[Unit] = console.print(a)
 
-      def println[A](a: A)(implicit S: Show[A]): F[Unit] = console.println(a)
+        def println[A](a: A)(implicit S: Show[A]): F[Unit] = console.println(a)
 
-      def error[A](a: A)(implicit S: Show[A]): F[Unit] = console.error(a)
+        def error[A](a: A)(implicit S: Show[A]): F[Unit] = console.error(a)
 
-      def errorln[A](a: A)(implicit S: Show[A]): F[Unit] = console.errorln(a)
+        def errorln[A](a: A)(implicit S: Show[A]): F[Unit] = console.errorln(a)
 
+      }
     }
 
 }

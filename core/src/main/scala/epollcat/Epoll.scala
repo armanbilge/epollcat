@@ -17,6 +17,8 @@
 package epollcat
 
 import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
+import cats.effect.std.Semaphore
 import cats.syntax.all._
 import epollcat.unsafe.EpollExecutorScheduler
 
@@ -24,7 +26,13 @@ import Epoll._
 
 trait Epoll[F[_]] {
 
-  def monitor(fd: Int, event: Event): F[Unit]
+  def register(fd: Int): Resource[F, EpollCtl[F]]
+
+}
+
+trait EpollCtl[F[_]] {
+
+  def monitor(event: Event): F[Unit]
 
 }
 
@@ -41,11 +49,21 @@ object Epoll {
   private[epollcat] def apply[F[_]](epoll: EpollExecutorScheduler)(
       implicit F: Async[F]): Epoll[F] =
     new Epoll[F] {
-      def monitor(fd: Int, event: Event): F[Unit] = F.async[Unit] { cb =>
-        F.delay(epoll.monitor(fd, event.mask | EPOLLONESHOT, () => cb(Right(())))).map {
-          cancel => Some(F.delay(cancel.run()))
-        }
-      }
+      def register(fd: Int): Resource[F, EpollCtl[F]] =
+        Resource
+          .make(F.delay(epoll.register(fd)))(cancel => F.delay(cancel.run()))
+          .evalMap(_ => Semaphore(1))
+          .map { semaphore =>
+            new EpollCtl[F] {
+              def monitor(event: Event): F[Unit] =
+                semaphore.permit.surround {
+                  F.async[Unit] { cb =>
+                    F.delay(epoll.monitor(fd, event.mask | EPOLLONESHOT, _ => cb(Right(()))))
+                      .map { cancel => Some(F.delay(cancel.run())) }
+                  }
+                }
+            }
+          }
     }
 
 }

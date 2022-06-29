@@ -36,7 +36,7 @@ private[epollcat] final class EpollExecutorScheduler private (
 
   import epoll._
 
-  private[this] val callbacks: Set[Runnable] = Collections.newSetFromMap(new IdentityHashMap)
+  private[this] val callbacks: Set[Int => Unit] = Collections.newSetFromMap(new IdentityHashMap)
 
   override def poll(timeout: Duration): Boolean = {
     val timeoutIsInfinite = timeout > Int.MaxValue.millis
@@ -53,11 +53,12 @@ private[epollcat] final class EpollExecutorScheduler private (
         var i = 0
         while (i < triggeredEvents) {
           val event = events + i.toLong * 12
-          val task = Intrinsics
+          val eventsMask = !events.asInstanceOf[Ptr[Int]]
+          val cb = Intrinsics
             .castRawPtrToObject(toRawPtr(!((event + 4).asInstanceOf[Ptr[Ptr[Byte]]])))
-            .asInstanceOf[Runnable]
-          callbacks.remove(task)
-          execute(task)
+            .asInstanceOf[Int => Unit]
+          callbacks.remove(cb)
+          execute(() => cb(eventsMask))
           i += 1
         }
       } else {
@@ -68,19 +69,37 @@ private[epollcat] final class EpollExecutorScheduler private (
     }
   }
 
-  def monitor(fd: Int, events: Int, task: Runnable): Runnable = {
+  def register(fd: Int): Runnable = {
+    val event = stackalloc[Byte](12)
+    !event.asInstanceOf[Ptr[UInt]] = 0.toUInt
+    !(event + 4).asInstanceOf[Ptr[Ptr[Unit]]] = null
+
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, event) != 0)
+      throw new RuntimeException(s"epoll_ctl_add: ${errno.errno}")
+
+    () => {
+      if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, null) != 0)
+        throw new RuntimeException(s"epoll_ctl_del: ${errno.errno}")
+    }
+  }
+
+  def monitor(fd: Int, events: Int, cb: Int => Unit): Runnable = {
 
     val event = stackalloc[Byte](12)
     !event.asInstanceOf[Ptr[UInt]] = events.toUInt
-    !(event + 4).asInstanceOf[Ptr[Ptr[Unit]]] = fromRawPtr(Intrinsics.castObjectToRawPtr(task))
+    !(event + 4).asInstanceOf[Ptr[Ptr[Unit]]] = fromRawPtr(Intrinsics.castObjectToRawPtr(cb))
 
-    epollCtl(epfd, EPOLL_CTL_ADD, fd, event)
+    if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, event) != 0)
+      throw new RuntimeException(s"epoll_ctl_add: ${errno.errno}")
 
-    callbacks.add(task)
+    callbacks.add(cb)
 
     () => {
-      callbacks.remove(task)
-      epollCtl(epfd, EPOLL_CTL_DEL, fd, null)
+      callbacks.remove(cb)
+      val event = stackalloc[Byte](12)
+      !event.asInstanceOf[Ptr[UInt]] = 0.toUInt
+      !(event + 4).asInstanceOf[Ptr[Ptr[Unit]]] = null
+      epollCtl(epfd, EPOLL_CTL_MOD, fd, null)
     }
   }
 
@@ -114,6 +133,7 @@ private[epollcat] object epoll {
 
   final val EPOLL_CTL_ADD = 1
   final val EPOLL_CTL_DEL = 2
+  final val EPOLL_CTL_MOD = 3
 
   final val EPOLLIN = 0x001
   final val EPOLLOUT = 0x004

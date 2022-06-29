@@ -31,7 +31,15 @@ trait EpollApp extends IOApp {
     Epoll(runtime.compute.asInstanceOf[EpollExecutorScheduler])
 
   implicit final def console: Console[IO] =
-    instances.console.epollConsole(IO.asyncForIO, IO.consoleForIO, epoll)
+    instances
+      .console
+      .epollConsole(IO.asyncForIO, IO.consoleForIO, epoll)
+      .allocated
+      .map(_._1)
+      .syncStep(runtimeConfig.autoYieldThreshold)
+      .unsafeRunSync() // craziness
+      .toOption
+      .get
 
 }
 
