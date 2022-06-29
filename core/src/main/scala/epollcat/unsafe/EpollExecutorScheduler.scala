@@ -46,15 +46,17 @@ private[epollcat] final class EpollExecutorScheduler private (
     else {
       val timeoutMillis = if (timeoutIsInfinite) -1 else timeout.toMillis.toInt
 
-      val events = stackalloc[epoll_event_t](maxEvents.toLong)
+      val events = stackalloc[Byte](maxEvents.toLong)
 
       val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
 
       if (triggeredEvents >= 0) {
         var i = 0
         while (i < triggeredEvents) {
-          val event = events(i.toLong)
-          val task = Intrinsics.castRawPtrToObject(toRawPtr(event._2)).asInstanceOf[Runnable]
+          val event = events + i * 12
+          val task = Intrinsics
+            .castRawPtrToObject(toRawPtr(!((event + 4).asInstanceOf[Ptr[Ptr[Byte]]])))
+            .asInstanceOf[Runnable]
           callbacks.remove(task)
           execute(task)
           i += 1
@@ -69,11 +71,11 @@ private[epollcat] final class EpollExecutorScheduler private (
 
   def monitor(fd: Int, events: Int, task: Runnable): Runnable = {
 
-    val ev = stackalloc[epoll_event_t]()
-    ev._1 = events.toUInt
-    ev._2 = fromRawPtr(Intrinsics.castObjectToRawPtr(task))
+    val event = stackalloc[Byte](12)
+    !event.asInstanceOf[Ptr[UInt]] = events.toUInt
+    !(event + 4).asInstanceOf[Ptr[Ptr[Unit]]] = fromRawPtr(Intrinsics.castObjectToRawPtr(task))
 
-    epollCtl(epfd, EPOLL_CTL_ADD, fd, ev)
+    epollCtl(epfd, EPOLL_CTL_ADD, fd, event)
 
     callbacks.add(task)
 
@@ -83,11 +85,7 @@ private[epollcat] final class EpollExecutorScheduler private (
     }
   }
 
-  @inline private[this] def epollCtl(
-      epfd: Int,
-      op: Int,
-      fd: Int,
-      event: Ptr[epoll_event_t]): Unit = {
+  @inline private[this] def epollCtl(epfd: Int, op: Int, fd: Int, event: Ptr[Byte]): Unit = {
     if (epoll_ctl(epfd, op, fd, event) != 0)
       throw new RuntimeException(s"epoll_ctl: ${errno.errno}")
   }
@@ -123,13 +121,12 @@ private[epollcat] object epoll {
   final val EPOLLONESHOT = 1 << 30
 
   type epoll_data_t = Ptr[Unit]
-  type epoll_event_t = CStruct2[uint32_t, epoll_data_t]
 
   def epoll_create1(flags: Int): Int = extern
 
-  def epoll_ctl(epfd: Int, op: Int, fd: Int, event: Ptr[epoll_event_t]): Int = extern
+  def epoll_ctl(epfd: Int, op: Int, fd: Int, event: Ptr[Byte]): Int = extern
 
-  def epoll_wait(epfd: Int, events: Ptr[epoll_event_t], maxevents: Int, timeout: Int): Int =
+  def epoll_wait(epfd: Int, events: Ptr[Byte], maxevents: Int, timeout: Int): Int =
     extern
 
 }
