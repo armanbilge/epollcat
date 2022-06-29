@@ -21,6 +21,8 @@ import cats.effect.unsafe.IORuntime
 import epollcat.unsafe.EpollIORuntime
 import munit.CatsEffectSuite
 
+import scala.concurrent.duration._
+
 class EpollcatSuite extends CatsEffectSuite {
 
   override implicit def munitIoRuntime: IORuntime = EpollIORuntime.global
@@ -32,6 +34,15 @@ class EpollcatSuite extends CatsEffectSuite {
     }
 
     result.assertEquals(List("pong", "ping", "pong", "ping", "pong", "ping"))
+  }
+
+  test("scheduling") {
+    val result = IO.ref[List[FiniteDuration]](Nil).flatMap { ref =>
+      def go(d: FiniteDuration) = IO.sleep(d) *> ref.getAndUpdate(d :: _) *> IO.cede
+      IO.both(go(500.millis), IO.both(go(1.second), go(100.millis))) *> ref.get
+    }
+
+    result.assertEquals(List(1.second, 500.millis, 100.millis))
   }
 
 }
