@@ -25,7 +25,7 @@ import epollcat.unsafe.EpollRuntime
 
 trait EpollApp extends IOApp {
 
-  override final def runtime: IORuntime = EpollRuntime(runtimeConfig)
+  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
 
   implicit final def epoll: Epoll[IO] =
     Epoll(runtime.compute.asInstanceOf[EpollExecutorScheduler])
