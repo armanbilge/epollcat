@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package epollcat.unsafe
+package epollcat
 
+import cats.effect.IO
+import cats.effect.IOApp
 import cats.effect.unsafe.IORuntime
-import cats.effect.unsafe.IORuntimeConfig
-import cats.effect.unsafe.Scheduler
+import epollcat.unsafe.EpollExecutorScheduler
+import epollcat.unsafe.EpollRuntime
 
-import scala.concurrent.ExecutionContext
+trait EpollApp extends IOApp {
 
-object EpollRuntime {
+  override final def runtime: IORuntime = EpollRuntime(runtimeConfig)
 
-  def apply(): IORuntime = apply(IORuntimeConfig())
+  implicit final def epoll: Epoll[IO] =
+    Epoll(runtime.compute.asInstanceOf[EpollExecutorScheduler])
 
-  def apply(config: IORuntimeConfig): IORuntime = {
-    val ecScheduler = defaultExecutionContextScheduler()
-    IORuntime(ecScheduler, ecScheduler, ecScheduler, () => (), config)
-  }
+}
 
-  def defaultExecutionContextScheduler(): ExecutionContext with Scheduler =
-    EpollExecutorScheduler()
-
+object EpollApp {
+  trait Simple extends IOApp.Simple with EpollApp
 }
