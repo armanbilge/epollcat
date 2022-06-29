@@ -18,7 +18,8 @@ lazy val core = project
   .settings(
     name := "epollcat",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "cats-effect" % "3.4-dfca087-SNAPSHOT"
+      "com.armanbilge" %%% "cats-effect" % "3.4-dfca087-SNAPSHOT",
+      "com.armanbilge" %%% "munit-cats-effect" % "2.0-4e051ab-SNAPSHOT" % Test
     )
   )
 
