@@ -30,7 +30,7 @@ object TpolChico extends EpollApp.Simple {
     val printismsLoop = IO.sleep(1.second) *> (printism *> IO.sleep(3.seconds)).foreverM
 
     def readLoop: IO[Unit] = Console[IO].readLine.flatMap { l =>
-      if (l == "return") IO.unit
+      if (l == "return") IO.println("* throws laptop into the sea *")
       else IO.println("i'm a simple caveman, your complicated language confuses me") >> readLoop
     }
 
