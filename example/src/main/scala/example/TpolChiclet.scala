@@ -22,7 +22,7 @@ import epollcat.EpollApp
 
 import scala.concurrent.duration._
 
-object TpolChico extends EpollApp.Simple {
+object TpolChiclet extends EpollApp.Simple {
 
   def run = IO.ref(0).flatMap { counter =>
     val printism =
