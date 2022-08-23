@@ -13,7 +13,7 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 val catsEffectVersion = "3.4-f28b163-SNAPSHOT"
 val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
 
-lazy val root = tlCrossRootProject.aggregate(core, example)
+lazy val root = tlCrossRootProject.aggregate(core, tcp, tests, example)
 
 lazy val core = project
   .in(file("core"))
