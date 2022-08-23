@@ -23,6 +23,24 @@ lazy val core = project
     )
   )
 
+lazy val tcp = project
+  .in(file("tcp"))
+  .enablePlugins(ScalaNativePlugin)
+  .dependsOn(core)
+  .settings(
+    name := "epollcat-tcp"
+  )
+
+lazy val tests = crossProject(JVMPlatform, NativePlatform)
+  .in(file("tests"))
+  .enablePlugins(NoPublishPlugin)
+  .nativeConfigure(_.dependsOn(tcp))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "munit-cats-effect" % "2.0-4e051ab-SNAPSHOT" % Test
+    )
+  )
+
 lazy val example =
   project.in(file("example")).enablePlugins(ScalaNativePlugin, NoPublishPlugin).dependsOn(core)
 
