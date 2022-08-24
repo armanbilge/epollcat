@@ -38,9 +38,14 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .in(file("tests"))
   .enablePlugins(NoPublishPlugin)
   .nativeConfigure(_.dependsOn(tcp))
-  .settings(
+  .nativeSettings(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+    )
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
     )
   )
 
