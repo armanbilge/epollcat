@@ -29,7 +29,7 @@ class EpollcatSuite extends CatsEffectSuite {
   override implicit lazy val munitIoRuntime: IORuntime = EpollRuntime.global
 
   test("installs globally") {
-    assert(munitExecutionContext.isInstanceOf[EpollExecutorScheduler])
+    assert(EpollRuntime.global.compute.isInstanceOf[EpollExecutorScheduler])
   }
 
   test("ceding") {

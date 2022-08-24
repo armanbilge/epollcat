@@ -37,9 +37,7 @@ object EpollRuntime {
   }
 
   def global: IORuntime = {
-    IORuntime
-      .asInstanceOf[{ def installGlobal(global: => IORuntime): Boolean }]
-      .installGlobal(EpollRuntime())
+    IORuntime.installGlobal(EpollRuntime())
     IORuntime.global
   }
 

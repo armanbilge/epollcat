@@ -10,7 +10,7 @@ ThisBuild / crossScalaVersions := Seq("3.1.3", "2.12.16", "2.13.8")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 
-val catsEffectVersion = "3.4-f28b163-SNAPSHOT"
+val catsEffectVersion = "3.4-7efbac0-SNAPSHOT"
 val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
 
 lazy val root = tlCrossRootProject.aggregate(core, tcp, tests, example)
