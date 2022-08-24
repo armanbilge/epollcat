@@ -101,6 +101,8 @@ private[epollcat] object EpollExecutorScheduler {
 
   def apply(maxEvents: Int): EpollExecutorScheduler = {
     val epfd = epoll_create1(0)
+    if (epfd == -1)
+      throw new RuntimeException(s"epoll_create1: ${errno.errno}")
     new EpollExecutorScheduler(epfd, maxEvents)
   }
 
