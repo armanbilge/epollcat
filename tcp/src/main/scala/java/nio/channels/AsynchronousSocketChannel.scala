@@ -19,27 +19,95 @@ package java.nio.channels
 import java.net.SocketAddress
 import java.net.SocketOption
 import java.nio.ByteBuffer
+import java.nio.channels.spi.AsynchronousChannelProvider
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
-abstract class AsynchronousSocketChannel extends Channel {
+abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvider)
+    extends Channel {
 
+  def bind(local: SocketAddress): AsynchronousSocketChannel
+
+  // used in fs2
+  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel
+
+  // used in fs2
+  def shutdownInput(): AsynchronousSocketChannel
+
+  // used in fs2
+  def shutdownOutput(): AsynchronousSocketChannel
+
+  // used in fs2
+  def getRemoteAddress(): SocketAddress
+
+  // used in fs2
   def connect[A](
       remote: SocketAddress,
       attachment: A,
       handler: CompletionHandler[Void, A]
   ): Unit
 
-  def read[A](src: ByteBuffer, attachent: A, handler: CompletionHandler[Integer, _ >: A]): Unit
+  def connect(
+      remote: SocketAddress
+  ): Future[Void]
 
-  def write[A](src: ByteBuffer, attachent: A, handler: CompletionHandler[Integer, _ >: A]): Unit
+  def read[A](
+      dst: ByteBuffer,
+      timeout: Long,
+      unit: TimeUnit,
+      attachment: A,
+      handler: CompletionHandler[Integer, _ >: A]
+  ): Unit
 
-  def shutdownInput(): AsynchronousSocketChannel
+  // used in fs2
+  final def read[A](
+      dst: ByteBuffer,
+      attachment: A,
+      handler: CompletionHandler[Integer, _ >: A]
+  ): Unit =
+    read(dst, 0, TimeUnit.MILLISECONDS, attachment, handler)
 
-  def shutdownOutput(): AsynchronousSocketChannel
+  def read(dst: ByteBuffer): Future[Integer]
 
+  def read[A](
+      dsts: Array[ByteBuffer],
+      offset: Int,
+      length: Int,
+      timeout: Long,
+      unit: TimeUnit,
+      attachment: A,
+      handler: CompletionHandler[Long, _ >: A]
+  ): Unit
+
+  def write[A](
+      src: ByteBuffer,
+      timeout: Long,
+      unit: TimeUnit,
+      attachment: A,
+      handler: CompletionHandler[Integer, _ >: A]
+  ): Unit
+
+  // used in fs2
+  final def write[A](
+      src: ByteBuffer,
+      attachment: A,
+      handler: CompletionHandler[Integer, _ >: A]
+  ): Unit =
+    write(src, 0, TimeUnit.MILLISECONDS, attachment, handler)
+
+  def write(src: ByteBuffer): Future[Integer]
+
+  def write[A](
+      srcs: Array[ByteBuffer],
+      offset: Int,
+      length: Int,
+      timeout: Long,
+      unit: TimeUnit,
+      attachment: A,
+      handler: CompletionHandler[java.lang.Long, _ >: A]
+  ): Unit
+
+  // used in fs2
   def getLocalAddress(): SocketAddress
-
-  def getRemoteAddress(): SocketAddress
-
-  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel
 
 }
