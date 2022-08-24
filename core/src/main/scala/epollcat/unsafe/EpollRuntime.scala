@@ -36,4 +36,11 @@ object EpollRuntime {
     (ecScheduler, () => ecScheduler.close())
   }
 
+  def global: IORuntime = {
+    IORuntime
+      .asInstanceOf[{ def installGlobal(global: => IORuntime): Boolean }]
+      .installGlobal(EpollRuntime())
+    IORuntime.global
+  }
+
 }

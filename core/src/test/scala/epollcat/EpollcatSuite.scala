@@ -18,6 +18,7 @@ package epollcat
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 import munit.CatsEffectSuite
 
@@ -25,7 +26,11 @@ import scala.concurrent.duration._
 
 class EpollcatSuite extends CatsEffectSuite {
 
-  override implicit lazy val munitIoRuntime: IORuntime = EpollRuntime()
+  override implicit lazy val munitIoRuntime: IORuntime = EpollRuntime.global
+
+  test("installs globally") {
+    assert(munitExecutionContext.isInstanceOf[EpollExecutorScheduler])
+  }
 
   test("ceding") {
     val result = IO.ref[List[String]](Nil).flatMap { ref =>
