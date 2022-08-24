@@ -22,7 +22,7 @@ import cats.effect.unsafe.Scheduler
 
 import scala.concurrent.ExecutionContext
 
-object EpollRuntime extends EpollRuntimeCrossCompat {
+object EpollRuntime {
 
   def apply(): IORuntime = apply(IORuntimeConfig())
 
@@ -37,7 +37,9 @@ object EpollRuntime extends EpollRuntimeCrossCompat {
   }
 
   def global: IORuntime = {
-    installGlobal(EpollRuntime())
+    IORuntime
+      .asInstanceOf[{ def installGlobal(global: => IORuntime): Boolean }]
+      .installGlobal(EpollRuntime())
     IORuntime.global
   }
 
