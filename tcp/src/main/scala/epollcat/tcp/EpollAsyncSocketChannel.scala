@@ -124,6 +124,11 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
               completed(total)
             } else
               handler.failed(new RuntimeException(s"read: $e"), attachment)
+          } else if (readed == 0) {
+            if (total > 0)
+              completed(total)
+            else
+              handler.completed(-1, attachment)
           } else if (readed < count)
             go(buf + readed.toLong, count - readed, total + readed)
           else // readed == count
@@ -235,7 +240,8 @@ object EpollAsyncSocketChannel {
         ch.ctlDel = epoll.ctl(
           fd,
           EpollExecutorScheduler.Read | EpollExecutorScheduler.Write | EpollExecutorScheduler.EdgeTriggered)(
-          ch.callback(_))
+          ch.callback(_)
+        )
         ch
       case _ => throw new RuntimeException("Global compute is not an EpollExecutorScheduler!")
     }
