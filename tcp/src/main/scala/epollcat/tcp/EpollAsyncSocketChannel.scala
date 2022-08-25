@@ -180,8 +180,8 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
 
     val conRet = posix.sys.socket.connect(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
     posix.netdb.freeaddrinfo(!addrinfo)
-    if (conRet != 0 || conRet != posix.errno.EINPROGRESS)
-      return handler.failed(new IOException(s"connect: ${conRet}"), attachment)
+    if (conRet == -1 && errno.errno != posix.errno.EINPROGRESS)
+      return handler.failed(new IOException(s"connect: ${errno.errno}"), attachment)
 
     val callback: Runnable = () => {
       writeCallback = null
