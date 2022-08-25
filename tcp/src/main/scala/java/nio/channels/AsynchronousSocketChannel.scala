@@ -16,6 +16,8 @@
 
 package java.nio.channels
 
+import epollcat.tcp.EpollAsyncSocketChannel
+
 import java.net.SocketAddress
 import java.net.SocketOption
 import java.nio.ByteBuffer
@@ -110,4 +112,9 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
   // used in fs2
   def getLocalAddress(): SocketAddress
 
+}
+
+object AsynchronousSocketChannel {
+  def open(): AsynchronousSocketChannel =
+    EpollAsyncSocketChannel.open()
 }
