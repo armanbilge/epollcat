@@ -16,6 +16,9 @@
 
 package epollcat.tcp
 
+import epollcat.unsafe.EpollExecutorScheduler
+import epollcat.unsafe.EpollRuntime
+
 import java.io.IOException
 import java.net.SocketAddress
 import java.net.SocketOption
@@ -24,16 +27,38 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import scala.annotation.tailrec
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.posix
+import scala.scalanative.unsafe._
+import scala.scalanative.unsigned._
 
-final class EpollAsyncSocketChannel(fd: Int) extends AsynchronousSocketChannel(null) {
+final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocketChannel(null) {
+
+  private var ctlDel: Runnable = null
 
   private[this] var _isOpen: Boolean = true
+  private[this] var readReady: Boolean = false
+  private[this] var readCallback: Runnable = null
+  private[this] var writeReady: Boolean = false
+  private[this] var writeCallback: Runnable = null
+
+  private def callback(events: Int): Unit = {
+    if ((events & EpollExecutorScheduler.Read) != 0) {
+      readReady = true
+      if (readCallback != null) readCallback.run()
+    }
+
+    if ((events & EpollExecutorScheduler.Write) != 0) {
+      writeReady = true
+      if (writeCallback != null) writeCallback.run()
+    }
+  }
 
   def close(): Unit = {
     _isOpen = false
+    ctlDel.run()
     if (posix.unistd.close(fd) == -1)
       throw new IOException(s"close: ${errno.errno}")
   }
@@ -74,7 +99,45 @@ final class EpollAsyncSocketChannel(fd: Int) extends AsynchronousSocketChannel(n
       unit: TimeUnit,
       attachment: A,
       handler: CompletionHandler[Integer, _ >: A]
-  ): Unit = ???
+  ): Unit =
+    if (readReady) {
+      Zone { implicit z =>
+        val count = dst.remaining()
+        val buf = alloc[Byte](count.toLong)
+
+        def completed(total: Int): Unit = {
+          var i = 0
+          while (i < total) {
+            dst.put(i, buf(i.toLong))
+            i += 1
+          }
+          handler.completed(total, attachment)
+        }
+
+        @tailrec
+        def go(buf: Ptr[Byte], count: Int, total: Int): Unit = {
+          val readed = posix.unistd.read(fd, buf, count.toULong)
+          if (readed == -1) {
+            val e = errno.errno
+            if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {
+              readReady = false
+              completed(total)
+            } else
+              handler.failed(new RuntimeException(s"read: $e"), attachment)
+          } else if (readed < count)
+            go(buf + readed.toLong, count - readed, total + readed)
+          else // readed == count
+            completed(total + readed)
+        }
+
+        go(buf, count, 0)
+      }
+    } else {
+      readCallback = () => {
+        readCallback = null
+        read(dst, timeout, unit, attachment, handler)
+      }
+    }
 
   @stub
   def connect(remote: SocketAddress): Future[Void] = ???
@@ -91,7 +154,8 @@ final class EpollAsyncSocketChannel(fd: Int) extends AsynchronousSocketChannel(n
   @stub
   def bind(local: SocketAddress): AsynchronousSocketChannel = ???
 
-  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel = ???
+  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel =
+    throw new UnsupportedOperationException
 
   @stub
   def write[A](
@@ -113,11 +177,67 @@ final class EpollAsyncSocketChannel(fd: Int) extends AsynchronousSocketChannel(n
       unit: TimeUnit,
       attachment: A,
       handler: CompletionHandler[Integer, _ >: A]
-  ): Unit = ???
+  ): Unit = if (writeReady) {
+    Zone { implicit z =>
+      val count = src.remaining()
+      val buf = alloc[Byte](count.toLong)
+      var i = 0
+      while (i < count) {
+        buf(i.toLong) = src.get(i)
+        i += 1
+      }
+
+      @tailrec
+      def go(buf: Ptr[Byte], count: Int, total: Int): Unit = {
+        val wrote = posix.unistd.write(fd, buf, count.toULong)
+        if (wrote == -1) {
+          val e = errno.errno
+          if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {
+            writeReady = false
+            handler.completed(total, attachment)
+          } else
+            handler.failed(new RuntimeException(s"write: $e"), attachment)
+        } else if (wrote < count)
+          go(buf + wrote.toLong, count - wrote, total + wrote)
+        else // wrote == count
+          handler.completed(total + wrote, attachment)
+      }
+
+      go(buf, count, 0)
+    }
+  } else {
+    writeCallback = () => {
+      writeCallback = null
+      write(src, timeout, unit, attachment, handler)
+    }
+  }
 
   def getLocalAddress(): SocketAddress = ???
 
   @stub
   def supportedOptions(): java.util.Set[SocketOption[_]] = ???
 
+}
+
+object EpollAsyncSocketChannel {
+  private final val SOCK_NONBLOCK = 2048
+
+  def open(): EpollAsyncSocketChannel = {
+    EpollRuntime.global.compute match {
+      case epoll: EpollExecutorScheduler =>
+        val fd = posix
+          .sys
+          .socket
+          .socket(posix.sys.socket.AF_INET6, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
+        if (fd == -1)
+          throw new RuntimeException(s"socket: ${errno.errno}")
+        val ch = new EpollAsyncSocketChannel(fd)
+        ch.ctlDel = epoll.ctl(
+          fd,
+          EpollExecutorScheduler.Read | EpollExecutorScheduler.Write | EpollExecutorScheduler.EdgeTriggered)(
+          ch.callback(_))
+        ch
+      case _ => throw new RuntimeException("Global compute is not an EpollExecutorScheduler!")
+    }
+  }
 }

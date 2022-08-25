@@ -93,6 +93,10 @@ private[epollcat] object EpollExecutorScheduler {
 
   import epoll._
 
+  final val Read = epoll.EPOLLIN
+  final val Write = epoll.EPOLLOUT
+  final val EdgeTriggered = epoll.EPOLLET
+
   def apply(): EpollExecutorScheduler = apply(64)
 
   def apply(maxEvents: Int): EpollExecutorScheduler = {
