@@ -39,30 +39,26 @@ private[epollcat] final class EpollExecutorScheduler private (
   private[this] val callbacks: Set[Int => Unit] = Collections.newSetFromMap(new IdentityHashMap)
 
   def poll(timeout: Duration): Boolean = {
-    val timeoutIsInfinite = timeout == Duration.Inf
 
-    if (timeoutIsInfinite && callbacks.isEmpty()) false
-    else {
-      val timeoutMillis = if (timeoutIsInfinite) -1 else timeout.toMillis.toInt
+    val timeoutMillis = if (timeout == Duration.Inf) -1 else timeout.toMillis.toInt
 
-      val events = stackalloc[epoll_event](maxEvents.toUInt)
+    val events = stackalloc[epoll_event](maxEvents.toUInt)
 
-      val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
+    val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
 
-      if (triggeredEvents >= 0) {
-        var i = 0
-        while (i < triggeredEvents) {
-          val event = events + i.toLong
-          val cb = fromPtr[Int => Unit](event.data)
-          cb(event.events.toInt)
-          i += 1
-        }
-      } else {
-        reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
+    if (triggeredEvents >= 0) {
+      var i = 0
+      while (i < triggeredEvents) {
+        val event = events + i.toLong
+        val cb = fromPtr[Int => Unit](event.data)
+        cb(event.events.toInt)
+        i += 1
       }
-
-      !callbacks.isEmpty()
+    } else {
+      reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
     }
+
+    !callbacks.isEmpty()
   }
 
   def ctl(fd: Int, events: Int)(cb: Int => Unit): Runnable = {
