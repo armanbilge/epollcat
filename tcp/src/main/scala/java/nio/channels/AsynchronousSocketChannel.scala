@@ -44,7 +44,7 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
   def connect[A](
       remote: SocketAddress,
       attachment: A,
-      handler: CompletionHandler[Void, A]
+      handler: CompletionHandler[Void, _ >: A]
   ): Unit
 
   def connect(
@@ -76,7 +76,7 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
       timeout: Long,
       unit: TimeUnit,
       attachment: A,
-      handler: CompletionHandler[Long, _ >: A]
+      handler: CompletionHandler[java.lang.Long, _ >: A]
   ): Unit
 
   def write[A](
