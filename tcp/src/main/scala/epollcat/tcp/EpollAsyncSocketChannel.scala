@@ -20,6 +20,7 @@ import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
 import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
 import java.nio.ByteBuffer
@@ -31,6 +32,7 @@ import scala.annotation.tailrec
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.posix
+import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 
@@ -151,7 +153,64 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       remote: SocketAddress,
       attachment: A,
       handler: CompletionHandler[Void, _ >: A]
-  ): Unit = ???
+  ): Unit = {
+    val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
+
+    val continue = Zone { implicit z =>
+      val addr = remote.asInstanceOf[InetSocketAddress]
+      val hints = stackalloc[posix.netdb.addrinfo]()
+      hints.ai_family = posix.sys.socket.AF_UNSPEC
+      hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
+      hints.ai_socktype = posix.sys.socket.SOCK_STREAM
+      if (posix
+          .netdb
+          .getaddrinfo(
+            toCString(addr.getAddress().getHostAddress()),
+            toCString(addr.getPort.toString),
+            hints,
+            addrinfo
+          ) != 0) {
+        handler.failed(new IOException(s"getaddrinfo: ${errno.errno}"), attachment)
+        false
+      } else true
+    }
+
+    if (!continue)
+      return ()
+
+    val conRet = posix.sys.socket.connect(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
+    posix.netdb.freeaddrinfo(!addrinfo)
+    if (conRet != 0 || conRet != posix.errno.EINPROGRESS)
+      return handler.failed(new IOException(s"connect: ${conRet}"), attachment)
+
+    val callback: Runnable = () => {
+      writeCallback = null
+      val optval = stackalloc[CInt]()
+      val optlen = stackalloc[posix.sys.socket.socklen_t]()
+      !optlen = sizeof[CInt].toUInt
+      if (posix
+          .sys
+          .socket
+          .getsockopt(
+            fd,
+            posix.sys.socket.SOL_SOCKET,
+            posix.sys.socket.SO_ERROR,
+            optval.asInstanceOf[Ptr[Byte]],
+            optlen
+          ) == -1)
+        return handler.failed(new IOException(s"getsockopt: ${errno.errno}"), attachment)
+
+      if (!optval == 0)
+        handler.completed(null, attachment)
+      else
+        handler.failed(new IOException(s"SO_ERROR: ${!optval}"), attachment)
+    }
+
+    if (writeReady)
+      callback.run()
+    else
+      writeCallback = callback
+  }
 
   @stub
   def getOption[T](name: SocketOption[T]): T = ???
