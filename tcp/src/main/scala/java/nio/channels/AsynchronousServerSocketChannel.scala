@@ -17,16 +17,31 @@
 package java.nio.channels
 
 import java.net.SocketAddress
+import java.net.SocketOption
+import java.nio.channels.spi.AsynchronousChannelProvider
+import java.util.concurrent.Future
 
-abstract class AsynchronousServerSocketChannel extends Channel {
+abstract class AsynchronousServerSocketChannel(val provider: AsynchronousChannelProvider)
+    extends Channel {
 
-  def bind(local: SocketAddress): AsynchronousServerSocketChannel
+  // used in fs2
+  final def bind(local: SocketAddress): AsynchronousServerSocketChannel =
+    bind(local, 0)
 
+  def bind(local: SocketAddress, backlog: Int): AsynchronousServerSocketChannel
+
+  // used in fs2
+  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel
+
+  // used in fs2
   def accept[A](
       attachment: A,
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit
 
+  def accept(): Future[AsynchronousSocketChannel]
+
+  // used in fs2
   def getLocalAddress(): SocketAddress
 
 }
