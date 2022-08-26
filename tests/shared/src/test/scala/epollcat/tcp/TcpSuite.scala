@@ -18,6 +18,7 @@ package epollcat
 package tcp
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -46,24 +47,31 @@ class TcpSuite extends EpollcatSuite {
       IO.async_[Integer](cb => ch.write(src, null, toHandler(cb))).map(_.intValue)
   }
 
+  object IOSocketChannel {
+    def open: Resource[IO, IOSocketChannel] =
+      Resource
+        .fromAutoCloseable(IO(AsynchronousSocketChannel.open()))
+        .map(new IOSocketChannel(_))
+  }
+
   def decode(bb: ByteBuffer): String =
     StandardCharsets.UTF_8.decode(bb).toString()
 
   test("HTTP echo") {
     val address = new InetSocketAddress(InetAddress.getByName("postman-echo.com"), 80)
-    val ch = new IOSocketChannel(AsynchronousSocketChannel.open())
-
     val bytes =
       """|GET /get HTTP/1.1
          |Host: postman-echo.com
          |
          |""".stripMargin.getBytes()
 
-    ch.connect(address) *>
-      ch.write(ByteBuffer.wrap(bytes)) *>
-      IO(ByteBuffer.allocate(1024))
-        .flatMap(bb => ch.read(bb) *> IO(bb.flip()) *> IO(decode(bb)))
-        .map(res => assert(clue(res).startsWith("HTTP/1.1 200 OK")))
+    IOSocketChannel.open.use { ch =>
+      ch.connect(address) *>
+        ch.write(ByteBuffer.wrap(bytes)) *>
+        IO(ByteBuffer.allocate(1024))
+          .flatMap(bb => ch.read(bb) *> IO(bb.flip()) *> IO(decode(bb)))
+          .map(res => assert(clue(res).startsWith("HTTP/1.1 200 OK")))
+    }
   }
 
 }
