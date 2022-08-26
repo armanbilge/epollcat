@@ -159,7 +159,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
     val continue = Zone { implicit z =>
       val addr = remote.asInstanceOf[InetSocketAddress]
       val hints = stackalloc[posix.netdb.addrinfo]()
-      hints.ai_family = posix.sys.socket.AF_UNSPEC
+      hints.ai_family = posix.sys.socket.AF_INET
       hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
       hints.ai_socktype = posix.sys.socket.SOCK_STREAM
       if (posix
@@ -292,7 +292,7 @@ object EpollAsyncSocketChannel {
         val fd = posix
           .sys
           .socket
-          .socket(posix.sys.socket.AF_INET6, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
+          .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
         if (fd == -1)
           throw new RuntimeException(s"socket: ${errno.errno}")
         val ch = new EpollAsyncSocketChannel(fd)
