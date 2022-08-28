@@ -57,7 +57,7 @@ private[net] object SocketHelpers {
       throw new IOException(s"setsockopt: ${errno.errno}")
   }
 
-def getLocalAddress(fd: CInt): SocketAddress = {
+  def getLocalAddress(fd: CInt): SocketAddress = {
     val addr = stackalloc[posix.netinet.in.sockaddr_in]()
     val len = stackalloc[posix.sys.socket.socklen_t]()
     !len = sizeof[posix.sys.socket.sockaddr].toUInt

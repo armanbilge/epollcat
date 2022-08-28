@@ -42,6 +42,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
   private var ctlDel: Runnable = null
 
   private[this] var _isOpen: Boolean = true
+  private[this] var remoteAddress: SocketAddress = null
   private[this] var readReady: Boolean = false
   private[this] var readCallback: Runnable = null
   private[this] var writeReady: Boolean = false
@@ -80,7 +81,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
     this
   }
 
-  def getRemoteAddress(): SocketAddress = ???
+  def getRemoteAddress(): SocketAddress = remoteAddress
 
   @stub
   def read[A](
@@ -202,10 +203,12 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
           ) == -1)
         return handler.failed(new IOException(s"getsockopt: ${errno.errno}"), attachment)
 
-      if (!optval == 0)
+      if (!optval == 0) {
+        remoteAddress = remote
         handler.completed(null, attachment)
-      else
+      } else {
         handler.failed(new IOException(s"SO_ERROR: ${!optval}"), attachment)
+      }
     }
 
     if (writeReady)
