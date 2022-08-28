@@ -23,16 +23,17 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
+import java.net.StandardSocketOptions
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.util.concurrent.Future
+import scala.annotation.nowarn
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
-import java.net.StandardSocketOptions
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
     extends AsynchronousServerSocketChannel(null) {
@@ -116,7 +117,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val clientFd = posix.sys.socket.accept(fd, null, null)
+      val clientFd = syssocket.accept(fd, null, null)
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
@@ -128,7 +129,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           handler.failed(new IOException(s"accept: ${errno.errno}"), attachment)
         }
       } else {
-        handler.completed(EpollAsyncSocketChannel.open(fd), attachment)
+        handler.completed(EpollAsyncSocketChannel.open(clientFd), attachment)
       }
     } else {
       readCallback = () => {
@@ -169,4 +170,10 @@ object EpollAsyncServerSocketChannel {
       case _ => throw new RuntimeException("Global compute is not an EpollExecutorScheduler!")
     }
   }
+}
+
+@extern
+@nowarn
+private[net] object syssocket {
+  def accept(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte]): CInt = extern
 }
