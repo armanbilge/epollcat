@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package epollcat.tcp
+package epollcat.internal.net
 
 import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime

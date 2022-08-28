@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package epollcat.tcp
+package epollcat.internal.net
 
 import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
@@ -297,7 +297,7 @@ object EpollAsyncSocketChannel {
     open(fd)
   }
 
-  private[tcp] def open(fd: CInt): EpollAsyncSocketChannel = {
+  private[net] def open(fd: CInt): EpollAsyncSocketChannel = {
     EpollRuntime.global.compute match {
       case epoll: EpollExecutorScheduler =>
         val ch = new EpollAsyncSocketChannel(fd)
