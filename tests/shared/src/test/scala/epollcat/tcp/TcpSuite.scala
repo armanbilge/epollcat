@@ -73,6 +73,9 @@ class TcpSuite extends EpollcatSuite {
 
     def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
       IO(ch.setOption(option, value)).void
+
+    def localAddress: IO[SocketAddress] =
+      IO(ch.getLocalAddress())
   }
 
   object IOServerSocketChannel {
@@ -115,8 +118,6 @@ class TcpSuite extends EpollcatSuite {
       IOSocketChannel.open
     ).tupled.use {
       case (serverCh, clientCh) =>
-        val addr = new InetSocketAddress(4242)
-
         val server = serverCh.accept.use { ch =>
           for {
             bb <- IO(ByteBuffer.allocate(4))
@@ -129,9 +130,10 @@ class TcpSuite extends EpollcatSuite {
           } yield ()
         }
 
-        serverCh.bind(addr) *> server.background.use { _ =>
+        serverCh.bind(new InetSocketAddress(0)) *> server.background.use { _ =>
           val ch = clientCh
           for {
+            addr <- serverCh.localAddress
             _ <- ch.connect(addr)
             wrote <- ch.write(ByteBuffer.wrap("ping".getBytes))
             _ <- IO(assertEquals(wrote, 4))
