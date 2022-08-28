@@ -31,7 +31,7 @@ abstract class AsynchronousServerSocketChannel(val provider: AsynchronousChannel
   def bind(local: SocketAddress, backlog: Int): AsynchronousServerSocketChannel
 
   // used in fs2
-  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel
+  def setOption[T](name: SocketOption[T], value: T): AsynchronousServerSocketChannel
 
   // used in fs2
   def accept[A](

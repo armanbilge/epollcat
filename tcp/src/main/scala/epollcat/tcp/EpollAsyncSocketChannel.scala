@@ -162,15 +162,16 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       hints.ai_family = posix.sys.socket.AF_INET
       hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
       hints.ai_socktype = posix.sys.socket.SOCK_STREAM
-      if (posix
-          .netdb
-          .getaddrinfo(
-            toCString(addr.getAddress().getHostAddress()),
-            toCString(addr.getPort.toString),
-            hints,
-            addrinfo
-          ) != 0) {
-        handler.failed(new IOException(s"getaddrinfo: ${errno.errno}"), attachment)
+      val rtn = posix
+        .netdb
+        .getaddrinfo(
+          toCString(addr.getAddress().getHostAddress()),
+          toCString(addr.getPort.toString),
+          hints,
+          addrinfo
+        )
+      if (rtn != 0) {
+        handler.failed(new IOException(s"getaddrinfo: $rtn"), attachment)
         false
       } else true
     }
@@ -287,14 +288,18 @@ object EpollAsyncSocketChannel {
   private final val SOCK_NONBLOCK = 2048
 
   def open(): EpollAsyncSocketChannel = {
+    val fd = posix
+      .sys
+      .socket
+      .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
+    if (fd == -1)
+      throw new RuntimeException(s"socket: ${errno.errno}")
+    open(fd)
+  }
+
+  private[tcp] def open(fd: CInt): EpollAsyncSocketChannel = {
     EpollRuntime.global.compute match {
       case epoll: EpollExecutorScheduler =>
-        val fd = posix
-          .sys
-          .socket
-          .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
-        if (fd == -1)
-          throw new RuntimeException(s"socket: ${errno.errno}")
         val ch = new EpollAsyncSocketChannel(fd)
         ch.ctlDel = epoll.ctl(
           fd,
