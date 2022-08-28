@@ -16,6 +16,8 @@
 
 package java.nio.channels
 
+import epollcat.tcp.EpollAsyncServerSocketChannel
+
 import java.net.SocketAddress
 import java.net.SocketOption
 import java.nio.channels.spi.AsynchronousChannelProvider
@@ -44,4 +46,9 @@ abstract class AsynchronousServerSocketChannel(val provider: AsynchronousChannel
   // used in fs2
   def getLocalAddress(): SocketAddress
 
+}
+
+object AsynchronousServerSocketChannel {
+  def open(): AsynchronousServerSocketChannel =
+    EpollAsyncServerSocketChannel.open()
 }

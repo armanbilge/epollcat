@@ -19,6 +19,7 @@ package tcp
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.syntax.all._
 
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -27,6 +28,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
+import java.nio.channels.AsynchronousServerSocketChannel
 
 class TcpSuite extends EpollcatSuite {
 
@@ -54,6 +56,22 @@ class TcpSuite extends EpollcatSuite {
         .map(new IOSocketChannel(_))
   }
 
+  final class IOServerSocketChannel(ch: AsynchronousServerSocketChannel) {
+    def bind(local: SocketAddress): IO[Unit] =
+      IO(ch.bind(local)).void
+
+    def accept: IO[IOSocketChannel] =
+      IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb)))
+        .map(new IOSocketChannel(_))
+  }
+
+  object IOServerSocketChannel {
+    def open: Resource[IO, IOServerSocketChannel] =
+      Resource
+        .fromAutoCloseable(IO(AsynchronousServerSocketChannel.open()))
+        .map(new IOServerSocketChannel(_))
+  }
+
   def decode(bb: ByteBuffer): String =
     StandardCharsets.UTF_8.decode(bb).toString()
 
@@ -69,13 +87,46 @@ class TcpSuite extends EpollcatSuite {
       for {
         _ <- ch.connect(address)
         wrote <- ch.write(ByteBuffer.wrap(bytes))
-        _ <- IO(assert(clue(wrote) == clue(bytes.length)))
+        _ <- IO(assertEquals(wrote, bytes.length))
         bb <- IO(ByteBuffer.allocate(1024))
         readed <- ch.read(bb)
         _ <- IO(assert(clue(readed) > 0))
         res <- IO(bb.position(0)) *> IO(decode(bb))
         _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
       } yield ()
+    }
+  }
+
+  test("server-client ping-pong") {
+    (IOServerSocketChannel.open, IOSocketChannel.open).tupled.use {
+      case (serverCh, clientCh) =>
+        val addr = new InetSocketAddress(4242)
+
+        val server = serverCh.accept.flatMap { ch =>
+          for {
+            bb <- IO(ByteBuffer.allocate(4))
+            readed <- ch.read(bb)
+            _ <- IO(assertEquals(readed, 4))
+            res <- IO(bb.position(0)) *> IO(decode(bb))
+            _ <- IO(assertEquals(res, "ping"))
+            wrote <- ch.write(ByteBuffer.wrap("pong".getBytes))
+            _ <- IO(assertEquals(wrote, 4))
+          } yield ()
+        }
+
+        serverCh.bind(addr) *> server.background.use { _ =>
+          val ch = clientCh
+          for {
+            _ <- ch.connect(addr)
+            wrote <- ch.write(ByteBuffer.wrap("ping".getBytes))
+            _ <- IO(assertEquals(wrote, 4))
+            bb <- IO(ByteBuffer.allocate(4))
+            readed <- ch.read(bb)
+            _ <- IO(assertEquals(readed, 4))
+            res <- IO(bb.position(0)) *> IO(decode(bb))
+            _ <- IO(assertEquals(res, "pong"))
+          } yield ()
+        }
     }
   }
 
