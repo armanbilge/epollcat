@@ -18,8 +18,17 @@ package java.net
 
 object StandardSocketOptions {
 
+  val SO_RCVBUF: SocketOption[java.lang.Integer] =
+    new StdSocketOption("SO_RCVBUF", classOf)
+
+  val SO_SNDBUF: SocketOption[java.lang.Integer] =
+    new StdSocketOption("SO_SNDBUF", classOf)
+
   val SO_REUSEADDR: SocketOption[java.lang.Boolean] =
     new StdSocketOption("SO_REUSEADDR", classOf)
+
+  val SO_REUSEPORT: SocketOption[java.lang.Boolean] =
+    new StdSocketOption("SO_REUSEPORT", classOf)
 
   private final class StdSocketOption[T](val name: String, val `type`: Class[T])
       extends SocketOption[T] {

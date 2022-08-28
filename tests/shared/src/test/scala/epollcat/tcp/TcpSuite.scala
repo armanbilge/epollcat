@@ -49,6 +49,9 @@ class TcpSuite extends EpollcatSuite {
 
     def write(src: ByteBuffer): IO[Int] =
       IO.async_[Integer](cb => ch.write(src, null, toHandler(cb))).map(_.intValue)
+
+    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
+      IO(ch.setOption(option, value)).void
   }
 
   object IOSocketChannel {
@@ -139,6 +142,21 @@ class TcpSuite extends EpollcatSuite {
             _ <- IO(assertEquals(res, "pong"))
           } yield ()
         }
+    }
+  }
+
+  test("options") {
+    IOSocketChannel.open.use { ch =>
+      ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
+        ch.setOption(StandardSocketOptions.SO_REUSEPORT, java.lang.Boolean.TRUE) *>
+        ch.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(1024)) *>
+        ch.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(1024))
+    }
+
+    IOServerSocketChannel.open.use { ch =>
+      ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
+        ch.setOption(StandardSocketOptions.SO_REUSEPORT, java.lang.Boolean.TRUE) *>
+        ch.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(1024))
     }
   }
 

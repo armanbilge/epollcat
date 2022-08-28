@@ -95,19 +95,22 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
 
   def setOption[T](name: SocketOption[T], value: T): AsynchronousServerSocketChannel =
     name match {
+      case StandardSocketOptions.SO_RCVBUF =>
+        SocketOptionHelpers.set(
+          fd,
+          posix.sys.socket.SO_RCVBUF,
+          value.asInstanceOf[java.lang.Integer]
+        )
+        this
       case StandardSocketOptions.SO_REUSEADDR =>
-        val enable = stackalloc[CInt]()
-        !enable = if (value.asInstanceOf[java.lang.Boolean]) 1 else 0
-        if (posix
-            .sys
-            .socket
-            .setsockopt(
-              fd,
-              posix.sys.socket.SOL_SOCKET,
-              posix.sys.socket.SO_REUSEADDR,
-              enable.asInstanceOf[Ptr[Byte]],
-              sizeof[CInt].toUInt) == -1)
-          throw new IOException(s"setsockopt: ${errno.errno}")
+        SocketOptionHelpers.set(
+          fd,
+          posix.sys.socket.SO_REUSEADDR,
+          value.asInstanceOf[java.lang.Boolean]
+        )
+        this
+      case StandardSocketOptions.SO_REUSEPORT =>
+        SocketOptionHelpers.set(fd, 15, value.asInstanceOf[java.lang.Boolean])
         this
       case _ => throw new IllegalArgumentException
     }

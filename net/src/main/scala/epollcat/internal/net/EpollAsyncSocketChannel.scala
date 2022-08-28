@@ -35,6 +35,7 @@ import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
+import java.net.StandardSocketOptions
 
 final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocketChannel(null) {
 
@@ -219,8 +220,33 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
   @stub
   def bind(local: SocketAddress): AsynchronousSocketChannel = ???
 
-  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel =
-    throw new UnsupportedOperationException
+  def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel = name match {
+    case StandardSocketOptions.SO_SNDBUF =>
+      SocketOptionHelpers.set(
+        fd,
+        posix.sys.socket.SO_SNDBUF,
+        value.asInstanceOf[java.lang.Integer]
+      )
+      this
+    case StandardSocketOptions.SO_RCVBUF =>
+      SocketOptionHelpers.set(
+        fd,
+        posix.sys.socket.SO_RCVBUF,
+        value.asInstanceOf[java.lang.Integer]
+      )
+      this
+    case StandardSocketOptions.SO_REUSEADDR =>
+      SocketOptionHelpers.set(
+        fd,
+        posix.sys.socket.SO_REUSEADDR,
+        value.asInstanceOf[java.lang.Boolean]
+      )
+      this
+    case StandardSocketOptions.SO_REUSEPORT =>
+      SocketOptionHelpers.set(fd, 15, value.asInstanceOf[java.lang.Boolean])
+      this
+    case _ => throw new IllegalArgumentException
+  }
 
   @stub
   def write[A](
