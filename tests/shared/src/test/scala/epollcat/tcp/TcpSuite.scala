@@ -62,8 +62,10 @@ class TcpSuite extends EpollcatSuite {
     def bind(local: SocketAddress): IO[Unit] =
       IO(ch.bind(local)).void
 
-    def accept: IO[IOSocketChannel] =
-      IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb)))
+    def accept: Resource[IO, IOSocketChannel] =
+      Resource
+        .make(IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb))))(ch =>
+          IO(ch.close()))
         .map(new IOSocketChannel(_))
 
     def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
@@ -112,7 +114,7 @@ class TcpSuite extends EpollcatSuite {
       case (serverCh, clientCh) =>
         val addr = new InetSocketAddress(4242)
 
-        val server = serverCh.accept.flatMap { ch =>
+        val server = serverCh.accept.use { ch =>
           for {
             bb <- IO(ByteBuffer.allocate(4))
             readed <- ch.read(bb)

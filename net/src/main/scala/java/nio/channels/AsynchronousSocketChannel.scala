@@ -26,7 +26,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvider)
-    extends Channel {
+    extends AsynchronousChannel {
 
   def bind(local: SocketAddress): AsynchronousSocketChannel
 

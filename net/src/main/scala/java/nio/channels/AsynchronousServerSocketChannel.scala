@@ -24,7 +24,7 @@ import java.nio.channels.spi.AsynchronousChannelProvider
 import java.util.concurrent.Future
 
 abstract class AsynchronousServerSocketChannel(val provider: AsynchronousChannelProvider)
-    extends Channel {
+    extends AsynchronousChannel {
 
   // used in fs2
   final def bind(local: SocketAddress): AsynchronousServerSocketChannel =
