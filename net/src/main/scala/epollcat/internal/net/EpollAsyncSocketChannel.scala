@@ -20,9 +20,11 @@ import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
 import java.io.IOException
+import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
@@ -35,7 +37,6 @@ import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
-import java.net.StandardSocketOptions
 
 final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocketChannel(null) {
 
@@ -183,8 +184,14 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
 
     val conRet = posix.sys.socket.connect(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
     posix.netdb.freeaddrinfo(!addrinfo)
-    if (conRet == -1 && errno.errno != posix.errno.EINPROGRESS)
-      return handler.failed(new IOException(s"connect: ${errno.errno}"), attachment)
+    if (conRet == -1 && errno.errno != posix.errno.EINPROGRESS) {
+      val ex = errno.errno match {
+        case e if e == posix.errno.ECONNREFUSED =>
+          new ConnectException("Connection refused")
+        case other => new IOException(s"connect: $other")
+      }
+      return handler.failed(ex, attachment)
+    }
 
     val callback: Runnable = () => {
       writeCallback = null
@@ -207,7 +214,12 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
         remoteAddress = remote
         handler.completed(null, attachment)
       } else {
-        handler.failed(new IOException(s"SO_ERROR: ${!optval}"), attachment)
+        val ex = !optval match {
+          case e if e == posix.errno.ECONNREFUSED =>
+            new ConnectException("Connection refused")
+          case other => new IOException(s"connect: $other")
+        }
+        handler.failed(ex, attachment)
       }
     }
 

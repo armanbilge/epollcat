@@ -21,16 +21,17 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.syntax.all._
 
+import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
-import java.net.StandardSocketOptions
 
 class TcpSuite extends EpollcatSuite {
 
@@ -167,6 +168,15 @@ class TcpSuite extends EpollcatSuite {
         ch.setOption(StandardSocketOptions.SO_REUSEPORT, java.lang.Boolean.TRUE) *>
         ch.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(1024))
     }
+  }
+
+  test("ConnectException") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .use(_.localAddress)
+      .flatMap(addr => IOSocketChannel.open.use(_.connect(addr)))
+      .interceptMessage[ConnectException]("Connection refused")
   }
 
 }
