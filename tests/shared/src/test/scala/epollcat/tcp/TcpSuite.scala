@@ -24,11 +24,13 @@ import cats.syntax.all._
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
+import java.net.SocketOption
 import java.nio.ByteBuffer
+import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
-import java.nio.channels.AsynchronousServerSocketChannel
+import java.net.StandardSocketOptions
 
 class TcpSuite extends EpollcatSuite {
 
@@ -63,6 +65,9 @@ class TcpSuite extends EpollcatSuite {
     def accept: IO[IOSocketChannel] =
       IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb)))
         .map(new IOSocketChannel(_))
+
+    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
+      IO(ch.setOption(option, value)).void
   }
 
   object IOServerSocketChannel {
@@ -98,7 +103,12 @@ class TcpSuite extends EpollcatSuite {
   }
 
   test("server-client ping-pong") {
-    (IOServerSocketChannel.open, IOSocketChannel.open).tupled.use {
+    (
+      IOServerSocketChannel
+        .open
+        .evalTap(_.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE)),
+      IOSocketChannel.open
+    ).tupled.use {
       case (serverCh, clientCh) =>
         val addr = new InetSocketAddress(4242)
 

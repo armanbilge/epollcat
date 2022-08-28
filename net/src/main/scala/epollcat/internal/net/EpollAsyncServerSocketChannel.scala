@@ -32,6 +32,7 @@ import scala.scalanative.libc.errno
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
+import java.net.StandardSocketOptions
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
     extends AsynchronousServerSocketChannel(null) {
@@ -92,7 +93,23 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   }
 
   def setOption[T](name: SocketOption[T], value: T): AsynchronousServerSocketChannel =
-    throw new UnsupportedOperationException
+    name match {
+      case StandardSocketOptions.SO_REUSEADDR =>
+        val enable = stackalloc[CInt]()
+        !enable = if (value.asInstanceOf[java.lang.Boolean]) 1 else 0
+        if (posix
+            .sys
+            .socket
+            .setsockopt(
+              fd,
+              posix.sys.socket.SOL_SOCKET,
+              posix.sys.socket.SO_REUSEADDR,
+              enable.asInstanceOf[Ptr[Byte]],
+              sizeof[CInt].toUInt) == -1)
+          throw new IOException(s"setsockopt: ${errno.errno}")
+        this
+      case _ => throw new IllegalArgumentException
+    }
 
   def accept[A](
       attachment: A,
