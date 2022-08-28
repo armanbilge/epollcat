@@ -20,6 +20,7 @@ import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
 import java.io.IOException
+import java.net.BindException
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
@@ -85,7 +86,11 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
 
     val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
     posix.netdb.freeaddrinfo(!addrinfo)
-    if (bindRet == -1) throw new IOException(s"bind: ${errno.errno}")
+    if (bindRet == -1) errno.errno match {
+      case e if e == posix.errno.EADDRINUSE =>
+        throw new BindException("Address already in use")
+      case other => throw new IOException(s"bind: $other")
+    }
 
     if (posix.sys.socket.listen(fd, backlog) == -1)
       throw new IOException(s"listen: ${errno.errno}")

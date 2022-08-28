@@ -21,6 +21,7 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.syntax.all._
 
+import java.net.BindException
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -177,6 +178,15 @@ class TcpSuite extends EpollcatSuite {
       .use(_.localAddress)
       .flatMap(addr => IOSocketChannel.open.use(_.connect(addr)))
       .interceptMessage[ConnectException]("Connection refused")
+  }
+
+  test("BindException") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalMap(_.localAddress)
+      .use(addr => IOServerSocketChannel.open.use(_.bind(addr)))
+      .interceptMessage[BindException]("Address already in use")
   }
 
 }
