@@ -222,28 +222,28 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
 
   def setOption[T](name: SocketOption[T], value: T): AsynchronousSocketChannel = name match {
     case StandardSocketOptions.SO_SNDBUF =>
-      SocketOptionHelpers.set(
+      SocketHelpers.setOption(
         fd,
         posix.sys.socket.SO_SNDBUF,
         value.asInstanceOf[java.lang.Integer]
       )
       this
     case StandardSocketOptions.SO_RCVBUF =>
-      SocketOptionHelpers.set(
+      SocketHelpers.setOption(
         fd,
         posix.sys.socket.SO_RCVBUF,
         value.asInstanceOf[java.lang.Integer]
       )
       this
     case StandardSocketOptions.SO_REUSEADDR =>
-      SocketOptionHelpers.set(
+      SocketHelpers.setOption(
         fd,
         posix.sys.socket.SO_REUSEADDR,
         value.asInstanceOf[java.lang.Boolean]
       )
       this
     case StandardSocketOptions.SO_REUSEPORT =>
-      SocketOptionHelpers.set(fd, 15, value.asInstanceOf[java.lang.Boolean])
+      SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
       this
     case _ => throw new IllegalArgumentException
   }
@@ -303,7 +303,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
     }
   }
 
-  def getLocalAddress(): SocketAddress = ???
+  def getLocalAddress(): SocketAddress = SocketHelpers.getLocalAddress(fd)
 
   @stub
   def supportedOptions(): java.util.Set[SocketOption[_]] = ???

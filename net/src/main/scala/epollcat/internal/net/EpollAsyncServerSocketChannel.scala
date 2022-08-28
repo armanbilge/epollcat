@@ -20,7 +20,6 @@ import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
 import java.io.IOException
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
@@ -34,7 +33,6 @@ import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
-import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
@@ -98,21 +96,21 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   def setOption[T](name: SocketOption[T], value: T): AsynchronousServerSocketChannel =
     name match {
       case StandardSocketOptions.SO_RCVBUF =>
-        SocketOptionHelpers.set(
+        SocketHelpers.setOption(
           fd,
           posix.sys.socket.SO_RCVBUF,
           value.asInstanceOf[java.lang.Integer]
         )
         this
       case StandardSocketOptions.SO_REUSEADDR =>
-        SocketOptionHelpers.set(
+        SocketHelpers.setOption(
           fd,
           posix.sys.socket.SO_REUSEADDR,
           value.asInstanceOf[java.lang.Boolean]
         )
         this
       case StandardSocketOptions.SO_REUSEPORT =>
-        SocketOptionHelpers.set(fd, 15, value.asInstanceOf[java.lang.Boolean])
+        SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
         this
       case _ => throw new IllegalArgumentException
     }
@@ -147,22 +145,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   @stub
   def accept(): Future[AsynchronousSocketChannel] = ???
 
-  def getLocalAddress(): SocketAddress = {
-    val addr = stackalloc[posix.netinet.in.sockaddr_in]()
-    val len = stackalloc[posix.sys.socket.socklen_t]()
-    !len = sizeof[posix.sys.socket.sockaddr].toUInt
-    if (posix
-        .sys
-        .socket
-        .getsockname(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], len) == -1)
-      throw new IOException(s"getsockname: ${errno.errno}")
-    val port = posix.arpa.inet.htons(addr.sin_port).toInt
-    val addrBytes = addr.sin_addr.at1.asInstanceOf[Ptr[Byte]]
-    val inetAddr = InetAddress.getByAddress(
-      Array(addrBytes(0), addrBytes(1), addrBytes(2), addrBytes(3))
-    )
-    new InetSocketAddress(inetAddr, port)
-  }
+  def getLocalAddress(): SocketAddress = SocketHelpers.getLocalAddress(fd)
 
   @stub
   def supportedOptions(): java.util.Set[SocketOption[_]] = ???

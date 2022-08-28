@@ -16,14 +16,18 @@
 
 package epollcat.internal.net
 
-import scala.scalanative.posix
-import scala.scalanative.unsafe._
-import scala.scalanative.libc.errno
 import java.io.IOException
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.SocketAddress
+import scala.scalanative.libc.errno
+import scala.scalanative.posix
+import scala.scalanative.posix.netinet.inOps._
+import scala.scalanative.unsafe._
 
-private[net] object SocketOptionHelpers {
+private[net] object SocketHelpers {
 
-  def set(fd: CInt, option: CInt, value: Boolean): Unit = {
+  def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()
     !ptr = if (value.asInstanceOf[java.lang.Boolean]) 1 else 0
     if (posix
@@ -38,7 +42,7 @@ private[net] object SocketOptionHelpers {
       throw new IOException(s"setsockopt: ${errno.errno}")
   }
 
-  def set(fd: CInt, option: CInt, value: Int): Unit = {
+  def setOption(fd: CInt, option: CInt, value: Int): Unit = {
     val ptr = stackalloc[CInt]()
     !ptr = value
     if (posix
@@ -51,6 +55,23 @@ private[net] object SocketOptionHelpers {
           ptr.asInstanceOf[Ptr[Byte]],
           sizeof[CInt].toUInt) == -1)
       throw new IOException(s"setsockopt: ${errno.errno}")
+  }
+
+def getLocalAddress(fd: CInt): SocketAddress = {
+    val addr = stackalloc[posix.netinet.in.sockaddr_in]()
+    val len = stackalloc[posix.sys.socket.socklen_t]()
+    !len = sizeof[posix.sys.socket.sockaddr].toUInt
+    if (posix
+        .sys
+        .socket
+        .getsockname(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], len) == -1)
+      throw new IOException(s"getsockname: ${errno.errno}")
+    val port = posix.arpa.inet.htons(addr.sin_port).toInt
+    val addrBytes = addr.sin_addr.at1.asInstanceOf[Ptr[Byte]]
+    val inetAddr = InetAddress.getByAddress(
+      Array(addrBytes(0), addrBytes(1), addrBytes(2), addrBytes(3))
+    )
+    new InetSocketAddress(inetAddr, port)
   }
 
 }
