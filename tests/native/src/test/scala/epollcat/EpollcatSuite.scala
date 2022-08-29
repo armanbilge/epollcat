@@ -16,16 +16,9 @@
 
 package epollcat
 
-import cats.effect.IOApp
-import cats.effect.unsafe.IORuntime
 import epollcat.unsafe.EpollRuntime
+import munit.CatsEffectSuite
 
-trait EpollApp extends IOApp {
-
-  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
-
-}
-
-object EpollApp {
-  trait Simple extends IOApp.Simple with EpollApp
+trait EpollcatSuite extends CatsEffectSuite {
+  override lazy val munitIoRuntime = EpollRuntime.global
 }

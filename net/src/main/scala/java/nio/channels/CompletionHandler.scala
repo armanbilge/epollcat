@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package epollcat
+package java.nio.channels
 
-import cats.effect.IOApp
-import cats.effect.unsafe.IORuntime
-import epollcat.unsafe.EpollRuntime
+trait CompletionHandler[V, A] {
 
-trait EpollApp extends IOApp {
+  def completed(result: V, attachment: A): Unit
 
-  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
+  def failed(exc: Throwable, attachment: A): Unit
 
-}
-
-object EpollApp {
-  trait Simple extends IOApp.Simple with EpollApp
 }

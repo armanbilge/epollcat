@@ -10,7 +10,10 @@ ThisBuild / crossScalaVersions := Seq("3.1.3", "2.12.16", "2.13.8")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 
-lazy val root = tlCrossRootProject.aggregate(core, example)
+val catsEffectVersion = "3.4-519e5ce-SNAPSHOT"
+val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
+
+lazy val root = tlCrossRootProject.aggregate(core, net, tests, example)
 
 lazy val core = project
   .in(file("core"))
@@ -18,8 +21,31 @@ lazy val core = project
   .settings(
     name := "epollcat",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "cats-effect" % "3.4-f28b163-SNAPSHOT",
-      "com.armanbilge" %%% "munit-cats-effect" % "2.0-4e051ab-SNAPSHOT" % Test
+      "com.armanbilge" %%% "cats-effect" % catsEffectVersion,
+      "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+    )
+  )
+
+lazy val net = project
+  .in(file("net"))
+  .enablePlugins(ScalaNativePlugin)
+  .dependsOn(core)
+  .settings(
+    name := "epollcat-net"
+  )
+
+lazy val tests = crossProject(JVMPlatform, NativePlatform)
+  .in(file("tests"))
+  .enablePlugins(NoPublishPlugin)
+  .nativeConfigure(_.dependsOn(net))
+  .nativeSettings(
+    libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+    )
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
     )
   )
 

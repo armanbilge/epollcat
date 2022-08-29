@@ -14,18 +14,24 @@
  * limitations under the License.
  */
 
-package epollcat
+package java.net
 
-import cats.effect.IOApp
-import cats.effect.unsafe.IORuntime
-import epollcat.unsafe.EpollRuntime
+object StandardSocketOptions {
 
-trait EpollApp extends IOApp {
+  val SO_RCVBUF: SocketOption[java.lang.Integer] =
+    new StdSocketOption("SO_RCVBUF", classOf)
 
-  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
+  val SO_SNDBUF: SocketOption[java.lang.Integer] =
+    new StdSocketOption("SO_SNDBUF", classOf)
 
-}
+  val SO_REUSEADDR: SocketOption[java.lang.Boolean] =
+    new StdSocketOption("SO_REUSEADDR", classOf)
 
-object EpollApp {
-  trait Simple extends IOApp.Simple with EpollApp
+  val SO_REUSEPORT: SocketOption[java.lang.Boolean] =
+    new StdSocketOption("SO_REUSEPORT", classOf)
+
+  private final class StdSocketOption[T](val name: String, val `type`: Class[T])
+      extends SocketOption[T] {
+    override def toString = name
+  }
 }

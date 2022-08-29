@@ -14,18 +14,6 @@
  * limitations under the License.
  */
 
-package epollcat
+package java.nio.channels.spi
 
-import cats.effect.IOApp
-import cats.effect.unsafe.IORuntime
-import epollcat.unsafe.EpollRuntime
-
-trait EpollApp extends IOApp {
-
-  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
-
-}
-
-object EpollApp {
-  trait Simple extends IOApp.Simple with EpollApp
-}
+abstract class AsynchronousChannelProvider

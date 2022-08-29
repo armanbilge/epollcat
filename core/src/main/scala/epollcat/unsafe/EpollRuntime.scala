@@ -36,4 +36,9 @@ object EpollRuntime {
     (ecScheduler, () => ecScheduler.close())
   }
 
+  def global: IORuntime = {
+    IORuntime.installGlobal(EpollRuntime())
+    IORuntime.global
+  }
+
 }
