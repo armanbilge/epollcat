@@ -42,6 +42,21 @@ private[net] object SocketHelpers {
       throw new IOException(s"setsockopt: ${errno.errno}")
   }
 
+  def setTcpOption(fd: CInt, option: CInt, value: Boolean): Unit = {
+    val ptr = stackalloc[CInt]()
+    !ptr = if (value.asInstanceOf[java.lang.Boolean]) 1 else 0
+    if (posix
+        .sys
+        .socket
+        .setsockopt(
+          fd,
+          6, // SOL_TCP
+          option,
+          ptr.asInstanceOf[Ptr[Byte]],
+          sizeof[CInt].toUInt) == -1)
+      throw new IOException(s"setsockopt: ${errno.errno}")
+  }
+
   def setOption(fd: CInt, option: CInt, value: Int): Unit = {
     val ptr = stackalloc[CInt]()
     !ptr = value

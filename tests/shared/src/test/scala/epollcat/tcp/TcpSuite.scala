@@ -161,7 +161,9 @@ class TcpSuite extends EpollcatSuite {
       ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
         ch.setOption(StandardSocketOptions.SO_REUSEPORT, java.lang.Boolean.TRUE) *>
         ch.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(1024)) *>
-        ch.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(1024))
+        ch.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(1024)) *>
+        ch.setOption(StandardSocketOptions.SO_KEEPALIVE, java.lang.Boolean.TRUE) *>
+        ch.setOption(StandardSocketOptions.TCP_NODELAY, java.lang.Boolean.TRUE)
     }
 
     IOServerSocketChannel.open.use { ch =>
