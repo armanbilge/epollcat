@@ -58,7 +58,7 @@ private[epollcat] final class EpollExecutorScheduler private (
           i += 1
         }
       } else {
-        reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
+        throw new RuntimeException(s"epoll_wait: ${errno.errno}")
       }
 
       !callbacks.isEmpty()
