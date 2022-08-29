@@ -51,4 +51,9 @@ abstract class AsynchronousServerSocketChannel(val provider: AsynchronousChannel
 object AsynchronousServerSocketChannel {
   def open(): AsynchronousServerSocketChannel =
     EpollAsyncServerSocketChannel.open()
+
+  def open(group: AsynchronousChannelGroup): AsynchronousServerSocketChannel = {
+    val _ = group
+    open()
+  }
 }
