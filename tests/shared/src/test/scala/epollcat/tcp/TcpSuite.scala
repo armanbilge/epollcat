@@ -57,6 +57,9 @@ class TcpSuite extends EpollcatSuite {
 
     def localAddress: IO[SocketAddress] =
       IO(ch.getLocalAddress())
+
+    def remoteAddress: IO[SocketAddress] =
+      IO(ch.getRemoteAddress())
   }
 
   object IOSocketChannel {
@@ -155,6 +158,26 @@ class TcpSuite extends EpollcatSuite {
             res <- IO(bb.position(0)) *> IO(decode(bb))
             _ <- IO(assertEquals(res, "pong"))
           } yield ()
+        }
+    }
+  }
+
+  test("local and remote addresses") {
+    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("127.0.0.1", 0))).use {
+      server =>
+        IOSocketChannel.open.use { clientCh =>
+          server.localAddress.flatMap(clientCh.connect(_)) *>
+            server.accept.use { serverCh =>
+              for {
+                serverLocal <- serverCh.localAddress
+                serverRemote <- serverCh.remoteAddress
+                clientLocal <- clientCh.localAddress
+                clientRemote <- clientCh.remoteAddress
+              } yield {
+                assertEquals(clientRemote, serverLocal)
+                assertEquals(serverRemote, clientLocal)
+              }
+            }
         }
     }
   }
