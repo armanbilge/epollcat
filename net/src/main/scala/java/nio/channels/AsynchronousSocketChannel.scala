@@ -117,4 +117,9 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
 object AsynchronousSocketChannel {
   def open(): AsynchronousSocketChannel =
     EpollAsyncSocketChannel.open()
+
+  def open(group: AsynchronousChannelGroup): AsynchronousSocketChannel = {
+    val _ = group
+    open()
+  }
 }
