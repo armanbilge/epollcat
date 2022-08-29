@@ -113,7 +113,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
         def completed(total: Int): Unit = {
           var i = 0
           while (i < total) {
-            dst.put(i, buf(i.toLong))
+            dst.put(buf(i.toLong))
             i += 1
           }
           handler.completed(total, attachment)

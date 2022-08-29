@@ -151,6 +151,7 @@ class TcpSuite extends EpollcatSuite {
             bb <- IO(ByteBuffer.allocate(4))
             readed <- ch.read(bb)
             _ <- IO(assertEquals(readed, 4))
+            _ <- IO(assertEquals(bb.remaining(), 0))
             res <- IO(bb.position(0)) *> IO(decode(bb))
             _ <- IO(assertEquals(res, "pong"))
           } yield ()
