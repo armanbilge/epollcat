@@ -164,7 +164,7 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
-  test("read after shutdownInput".only) {
+  test("read after shutdownInput") {
     IOServerSocketChannel
       .open
       .evalTap(_.bind(new InetSocketAddress(0)))
