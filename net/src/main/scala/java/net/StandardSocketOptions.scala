@@ -30,6 +30,12 @@ object StandardSocketOptions {
   val SO_REUSEPORT: SocketOption[java.lang.Boolean] =
     new StdSocketOption("SO_REUSEPORT", classOf)
 
+  val SO_KEEPALIVE: SocketOption[java.lang.Boolean] =
+    new StdSocketOption("SO_KEEPALIVE", classOf)
+
+  val TCP_NODELAY: SocketOption[java.lang.Boolean] =
+    new StdSocketOption("TCP_NODELAY", classOf)
+
   private final class StdSocketOption[T](val name: String, val `type`: Class[T])
       extends SocketOption[T] {
     override def toString = name
