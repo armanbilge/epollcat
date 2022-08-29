@@ -27,6 +27,7 @@ import scala.scalanative.posix.unistd
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
+import scala.util.control.NonFatal
 
 import epoll._
 import epollImplicits._
@@ -40,8 +41,10 @@ private[epollcat] final class EpollExecutorScheduler private (
 
   def poll(timeout: Duration): Boolean = {
     val timeoutIsInfinite = timeout == Duration.Inf
+    val noCallbacks = callbacks.isEmpty()
 
-    if (timeoutIsInfinite && callbacks.isEmpty()) false
+    if ((timeoutIsInfinite || timeout == Duration.Zero) && noCallbacks)
+      false // nothing to do here
     else {
       val timeoutMillis = if (timeoutIsInfinite) -1 else timeout.toMillis.toInt
 
@@ -54,11 +57,15 @@ private[epollcat] final class EpollExecutorScheduler private (
         while (i < triggeredEvents) {
           val event = events + i.toLong
           val cb = fromPtr[Int => Unit](event.data)
-          cb(event.events.toInt)
+          try {
+            cb(event.events.toInt)
+          } catch {
+            case NonFatal(ex) => reportFailure(ex)
+          }
           i += 1
         }
       } else {
-        reportFailure(new RuntimeException(s"epoll_wait: ${errno.errno}"))
+        throw new RuntimeException(s"epoll_wait: ${errno.errno}")
       }
 
       !callbacks.isEmpty()
