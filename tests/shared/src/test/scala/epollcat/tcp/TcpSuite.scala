@@ -164,6 +164,23 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
+  test("read after shutdownInput".only) {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalMap(_.localAddress)
+      .use { addr =>
+        IOSocketChannel.open.use { ch =>
+          for {
+            _ <- ch.connect(addr)
+            _ <- ch.shutdownInput
+            readed <- ch.read(ByteBuffer.allocate(1))
+            _ <- IO(assertEquals(readed, -1))
+          } yield ()
+        }
+      }
+  }
+
   test("options") {
     IOSocketChannel.open.use { ch =>
       ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
