@@ -27,6 +27,7 @@ import scala.scalanative.posix.unistd
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
+import scala.util.control.NonFatal
 
 import epoll._
 import epollImplicits._
@@ -54,7 +55,11 @@ private[epollcat] final class EpollExecutorScheduler private (
         while (i < triggeredEvents) {
           val event = events + i.toLong
           val cb = fromPtr[Int => Unit](event.data)
-          cb(event.events.toInt)
+          try {
+            cb(event.events.toInt)
+          } catch {
+            case NonFatal(ex) => reportFailure(ex)
+          }
           i += 1
         }
       } else {
