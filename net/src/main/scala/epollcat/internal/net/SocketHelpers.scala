@@ -50,7 +50,7 @@ private[net] object SocketHelpers {
         .socket
         .setsockopt(
           fd,
-          6, // SOL_TCP
+          posix.netinet.in.IPPROTO_TCP, // aka SOL_TCP
           option,
           ptr.asInstanceOf[Ptr[Byte]],
           sizeof[CInt].toUInt) == -1)
