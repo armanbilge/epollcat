@@ -260,6 +260,20 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
     case StandardSocketOptions.SO_REUSEPORT =>
       SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
       this
+    case StandardSocketOptions.SO_KEEPALIVE =>
+      SocketHelpers.setOption(
+        fd,
+        posix.sys.socket.SO_KEEPALIVE,
+        value.asInstanceOf[java.lang.Boolean]
+      )
+      this
+    case StandardSocketOptions.TCP_NODELAY =>
+      SocketHelpers.setTcpOption(
+        fd,
+        posix.netinet.tcp.TCP_NODELAY,
+        value.asInstanceOf[java.lang.Boolean]
+      )
+      this
     case _ => throw new IllegalArgumentException
   }
 
