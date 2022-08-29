@@ -299,12 +299,18 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       handler: CompletionHandler[Integer, _ >: A]
   ): Unit = if (writeReady) {
     Zone { implicit z =>
+      val position = src.position()
       val count = src.remaining()
       val buf = alloc[Byte](count.toLong)
       var i = 0
       while (i < count) {
-        buf(i.toLong) = src.get(i)
+        buf(i.toLong) = src.get(position + i)
         i += 1
+      }
+
+      def completed(total: Int): Unit = {
+        src.position(position + total)
+        handler.completed(total, attachment)
       }
 
       @tailrec
@@ -314,13 +320,13 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
           val e = errno.errno
           if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {
             writeReady = false
-            handler.completed(total, attachment)
+            completed(total)
           } else
             handler.failed(new RuntimeException(s"write: $e"), attachment)
         } else if (wrote < count)
           go(buf + wrote.toLong, count - wrote, total + wrote)
         else // wrote == count
-          handler.completed(total + wrote, attachment)
+          completed(total + wrote)
       }
 
       go(buf, count, 0)

@@ -144,7 +144,9 @@ class TcpSuite extends EpollcatSuite {
             _ <- IO(
               assert(clue(clientLocalAddr.asInstanceOf[InetSocketAddress].getPort()) != 0)
             )
-            wrote <- ch.write(ByteBuffer.wrap("ping".getBytes))
+            bb <- IO(ByteBuffer.wrap("ping".getBytes))
+            wrote <- ch.write(bb)
+            _ <- IO(assertEquals(bb.remaining(), 0))
             _ <- IO(assertEquals(wrote, 4))
             bb <- IO(ByteBuffer.allocate(4))
             readed <- ch.read(bb)
