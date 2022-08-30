@@ -351,7 +351,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
 }
 
 object EpollAsyncSocketChannel {
-  private final val SOCK_NONBLOCK = 2048
+  final val SOCK_NONBLOCK = 2048
 
   def open(): EpollAsyncSocketChannel = {
     val fd = posix

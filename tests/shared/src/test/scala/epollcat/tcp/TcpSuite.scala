@@ -229,4 +229,23 @@ class TcpSuite extends EpollcatSuite {
       .intercept[ClosedChannelException]
   }
 
+  test("server socket read does not block") {
+    IOServerSocketChannel.open.use { server =>
+      IOSocketChannel.open.use { clientCh =>
+        for {
+          _ <- server.bind(new InetSocketAddress(0))
+          addr <- server.localAddress
+          _ <- clientCh.connect(addr)
+          _ <- clientCh.write(ByteBuffer.wrap("Hello!".getBytes))
+          _ <- server.accept.use { serverCh =>
+            for {
+              bb <- IO(ByteBuffer.allocate(8192))
+              _ <- serverCh.read(bb)
+            } yield ()
+          }
+        } yield ()
+      }
+    }
+  }
+
 }
