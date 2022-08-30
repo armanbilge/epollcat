@@ -229,7 +229,7 @@ class TcpSuite extends EpollcatSuite {
       .intercept[ClosedChannelException]
   }
 
-  test("read does not block".only) {
+  test("server socket read does not block") {
     IOServerSocketChannel.open.use { server =>
       IOSocketChannel.open.use { clientCh =>
         for {
