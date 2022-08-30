@@ -31,6 +31,7 @@ import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
+import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
 
@@ -51,6 +52,10 @@ class TcpSuite extends EpollcatSuite {
 
     def write(src: ByteBuffer): IO[Int] =
       IO.async_[Integer](cb => ch.write(src, null, toHandler(cb))).map(_.intValue)
+
+    def shutdownInput: IO[Unit] = IO(ch.shutdownInput()).void
+
+    def shutdownOutput: IO[Unit] = IO(ch.shutdownOutput()).void
 
     def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
       IO(ch.setOption(option, value)).void
@@ -159,6 +164,23 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
+  test("read after shutdownInput") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalMap(_.localAddress)
+      .use { addr =>
+        IOSocketChannel.open.use { ch =>
+          for {
+            _ <- ch.connect(addr)
+            _ <- ch.shutdownInput
+            readed <- ch.read(ByteBuffer.allocate(1))
+            _ <- IO(assertEquals(readed, -1))
+          } yield ()
+        }
+      }
+  }
+
   test("options") {
     IOSocketChannel.open.use { ch =>
       ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
@@ -192,6 +214,19 @@ class TcpSuite extends EpollcatSuite {
       .evalMap(_.localAddress)
       .use(addr => IOServerSocketChannel.open.use(_.bind(addr)))
       .interceptMessage[BindException]("Address already in use")
+  }
+
+  test("ClosedChannelException") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalMap(_.localAddress)
+      .use { addr =>
+        IOSocketChannel.open.use { ch =>
+          ch.connect(addr) *> ch.shutdownOutput *> ch.write(ByteBuffer.wrap(Array(1, 2, 3)))
+        }
+      }
+      .intercept[ClosedChannelException]
   }
 
 }
