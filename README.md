@@ -43,7 +43,7 @@ Actually, no :) inside `EpollRuntime.global` you will find a vanilla `ExecutionC
 
 ### macOS support?
 
-Despite the project name, I am open to supporting macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). However, to do this without adding significant complexity will require Scala Native to add a `LinktimeInfo` flag to distinguish the platforms; see [scalanative/scalanative#2802](https://github.com/scala-native/scala-native/issues/2802).
+Despite the project name, I would like to support macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). This is tracked in [#2](https://github.com/armanbilge/epollcat/issues/2). macOS is not my daily driver so a contribution here would be very welcome!
 
 ### Windows support?
 
