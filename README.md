@@ -7,11 +7,9 @@ The primary goal of this project is to provide implementations for Java I/O APIs
 Please try it and contribute bug reports and fixes! Snapshots are available [here](https://s01.oss.sonatype.org/content/repositories/snapshots/com/armanbilge/epollcat_native0.4_3/) for Scala 2.12, 2.13, and 3.
 
 ```scala
-val epollcatVersion = "0.0-2f64289-SNAPSHOT" // or latest commit
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 libraryDependencies ++= Seq(
-  "com.armanbilge" %%% "epollcat" % epollcatVersion // core runtime
-  "com.armanbilge" %%% "epollcat-net" % epollcatVersion // async TCP sockets
+  "com.armanbilge" %%% "epollcat" % "0.0-da90d3d-SNAPSHOT" // or latest commit
 )
 ```
 
