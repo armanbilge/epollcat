@@ -261,7 +261,11 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       )
       this
     case StandardSocketOptions.SO_REUSEPORT =>
-      SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
+      SocketHelpers.setOption(
+        fd,
+        posix.sys.socket.SO_REUSEPORT,
+        value.asInstanceOf[java.lang.Boolean]
+      )
       this
     case StandardSocketOptions.SO_KEEPALIVE =>
       SocketHelpers.setOption(
