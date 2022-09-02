@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-package java.nio.channels
+package java.net
 
-trait CompletionHandler[V, A] {
-
-  def completed(result: V, attachment: A): Unit
-
-  def failed(exc: Throwable, attachment: A): Unit
-
-}
+// woops :)
+trait NetworkInterface
