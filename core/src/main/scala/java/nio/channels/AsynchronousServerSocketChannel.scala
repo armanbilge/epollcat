@@ -16,7 +16,7 @@
 
 package java.nio.channels
 
-import epollcat.internal.net.EpollAsyncServerSocketChannel
+import epollcat.internal.ch.EpollAsyncServerSocketChannel
 
 import java.net.SocketAddress
 import java.net.SocketOption

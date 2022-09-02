@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package epollcat.internal.net
+package epollcat.internal.ch
 
 import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
@@ -186,6 +186,6 @@ object EpollAsyncServerSocketChannel {
 
 @extern
 @nowarn
-private[net] object syssocket {
+private[ch] object syssocket {
   def accept4(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte], flags: CInt): CInt = extern
 }

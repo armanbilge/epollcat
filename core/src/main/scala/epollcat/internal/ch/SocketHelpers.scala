@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package epollcat.internal.net
+package epollcat.internal.ch
 
 import java.io.IOException
 import java.net.InetAddress
@@ -25,7 +25,7 @@ import scala.scalanative.posix
 import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 
-private[net] object SocketHelpers {
+private[ch] object SocketHelpers {
 
   def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()
