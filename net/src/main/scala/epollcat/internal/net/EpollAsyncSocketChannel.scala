@@ -27,6 +27,7 @@ import java.net.SocketOption
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
+import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -43,6 +44,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
   private var ctlDel: Runnable = null
 
   private[this] var _isOpen: Boolean = true
+  private[this] var outputShutdown: Boolean = false
   private[this] var remoteAddress: SocketAddress = null
   private[this] var readReady: Boolean = false
   private[this] var readCallback: Runnable = null
@@ -77,6 +79,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
   }
 
   def shutdownOutput(): AsynchronousSocketChannel = {
+    outputShutdown = true
     if (posix.sys.socket.shutdown(fd, 1) == -1)
       throw new IOException(s"shutdown: ${errno.errno}")
     this
@@ -258,7 +261,11 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       )
       this
     case StandardSocketOptions.SO_REUSEPORT =>
-      SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
+      SocketHelpers.setOption(
+        fd,
+        posix.sys.socket.SO_REUSEPORT,
+        value.asInstanceOf[java.lang.Boolean]
+      )
       this
     case StandardSocketOptions.SO_KEEPALIVE =>
       SocketHelpers.setOption(
@@ -297,7 +304,9 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
       unit: TimeUnit,
       attachment: A,
       handler: CompletionHandler[Integer, _ >: A]
-  ): Unit = if (writeReady) {
+  ): Unit = if (outputShutdown)
+    handler.failed(new ClosedChannelException, attachment)
+  else if (writeReady) {
     Zone { implicit z =>
       val position = src.position()
       val count = src.remaining()
@@ -346,7 +355,7 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
 }
 
 object EpollAsyncSocketChannel {
-  private final val SOCK_NONBLOCK = 2048
+  final val SOCK_NONBLOCK = 2048
 
   def open(): EpollAsyncSocketChannel = {
     val fd = posix

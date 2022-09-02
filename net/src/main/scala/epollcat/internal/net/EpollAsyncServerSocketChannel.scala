@@ -115,7 +115,11 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
         )
         this
       case StandardSocketOptions.SO_REUSEPORT =>
-        SocketHelpers.setOption(fd, 15, value.asInstanceOf[java.lang.Boolean])
+        SocketHelpers.setOption(
+          fd,
+          posix.sys.socket.SO_REUSEPORT,
+          value.asInstanceOf[java.lang.Boolean]
+        )
         this
       case _ => throw new IllegalArgumentException
     }
@@ -125,7 +129,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val clientFd = syssocket.accept(fd, null, null)
+      val clientFd = syssocket.accept4(fd, null, null, EpollAsyncSocketChannel.SOCK_NONBLOCK)
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
@@ -183,5 +187,5 @@ object EpollAsyncServerSocketChannel {
 @extern
 @nowarn
 private[net] object syssocket {
-  def accept(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte]): CInt = extern
+  def accept4(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte], flags: CInt): CInt = extern
 }

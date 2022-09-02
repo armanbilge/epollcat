@@ -7,7 +7,7 @@ The primary goal of this project is to provide implementations for Java I/O APIs
 Please try it and contribute bug reports and fixes! Snapshots are available [here](https://s01.oss.sonatype.org/content/repositories/snapshots/com/armanbilge/epollcat_native0.4_3/) for Scala 2.12, 2.13, and 3.
 
 ```scala
-val epollcatVersion = "0.0-428fc4a-SNAPSHOT" // or latest commit
+val epollcatVersion = "0.0-2f64289-SNAPSHOT" // or latest commit
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 libraryDependencies ++= Seq(
   "com.armanbilge" %%% "epollcat" % epollcatVersion // core runtime
@@ -43,7 +43,7 @@ Actually, no :) inside `EpollRuntime.global` you will find a vanilla `ExecutionC
 
 ### macOS support?
 
-Despite the project name, I am open to supporting macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). However, to do this without adding significant complexity will require Scala Native to add a `LinktimeInfo` flag to distinguish the platforms; see [scalanative/scalanative#2802](https://github.com/scala-native/scala-native/issues/2802).
+Despite the project name, I would like to support macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). This is tracked in [#2](https://github.com/armanbilge/epollcat/issues/2). macOS is not my daily driver so a contribution here would be very welcome!
 
 ### Windows support?
 
