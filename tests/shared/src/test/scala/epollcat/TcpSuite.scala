@@ -15,7 +15,6 @@
  */
 
 package epollcat
-package tcp
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
