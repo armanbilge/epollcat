@@ -13,7 +13,7 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 val catsEffectVersion = "3.4-519e5ce-SNAPSHOT"
 val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
 
-lazy val root = tlCrossRootProject.aggregate(core, net, tests, example)
+lazy val root = tlCrossRootProject.aggregate(core, tests)
 
 lazy val core = project
   .in(file("core"))
@@ -26,18 +26,10 @@ lazy val core = project
     )
   )
 
-lazy val net = project
-  .in(file("net"))
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core)
-  .settings(
-    name := "epollcat-net"
-  )
-
 lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .in(file("tests"))
   .enablePlugins(NoPublishPlugin)
-  .nativeConfigure(_.dependsOn(net))
+  .nativeConfigure(_.dependsOn(core))
   .nativeSettings(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
@@ -48,8 +40,5 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
       "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
     )
   )
-
-lazy val example =
-  project.in(file("example")).enablePlugins(ScalaNativePlugin, NoPublishPlugin).dependsOn(core)
 
 ThisBuild / resolvers += "s01" at "https://s01.oss.sonatype.org/content/repositories/snapshots/"
