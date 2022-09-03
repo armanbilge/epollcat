@@ -26,7 +26,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvider)
-    extends AsynchronousChannel {
+    extends AsynchronousByteChannel {
 
   def bind(local: SocketAddress): AsynchronousSocketChannel
 
@@ -69,8 +69,6 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
   ): Unit =
     read(dst, 0, TimeUnit.MILLISECONDS, attachment, handler)
 
-  def read(dst: ByteBuffer): Future[Integer]
-
   def read[A](
       dsts: Array[ByteBuffer],
       offset: Int,
@@ -96,8 +94,6 @@ abstract class AsynchronousSocketChannel(val provider: AsynchronousChannelProvid
       handler: CompletionHandler[Integer, _ >: A]
   ): Unit =
     write(src, 0, TimeUnit.MILLISECONDS, attachment, handler)
-
-  def write(src: ByteBuffer): Future[Integer]
 
   def write[A](
       srcs: Array[ByteBuffer],
