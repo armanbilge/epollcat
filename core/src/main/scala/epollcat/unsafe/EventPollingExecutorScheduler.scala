@@ -26,7 +26,7 @@ private[epollcat] abstract class EventPollingExecutorScheduler
 }
 
 private[epollcat] trait EventNotificationCallback {
-  protected def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit
+  protected[epollcat] def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit
 }
 
 private[epollcat] object EventPollingExecutorScheduler {
