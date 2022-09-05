@@ -32,8 +32,7 @@ object EpollRuntime {
   }
 
   def defaultExecutionContextScheduler(): (ExecutionContext with Scheduler, () => Unit) = {
-    val ecScheduler = EpollExecutorScheduler()
-    (ecScheduler, () => ecScheduler.close())
+    EventPollingExecutorScheduler(64)
   }
 
   def global: IORuntime = {

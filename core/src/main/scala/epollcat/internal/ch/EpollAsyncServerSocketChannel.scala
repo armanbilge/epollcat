@@ -16,8 +16,9 @@
 
 package epollcat.internal.ch
 
-import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
+import epollcat.unsafe.EventNotificationCallback
+import epollcat.unsafe.EventPollingExecutorScheduler
 
 import java.io.IOException
 import java.net.BindException
@@ -37,24 +38,25 @@ import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
-    extends AsynchronousServerSocketChannel(null) {
+    extends AsynchronousServerSocketChannel(null)
+    with EventNotificationCallback {
 
-  private var ctlDel: Runnable = null
+  private var unmonitor: Runnable = null
 
   private[this] var _isOpen: Boolean = true
   private[this] var readReady: Boolean = false
   private[this] var readCallback: Runnable = null
 
-  private def callback(events: Int): Unit = {
-    if ((events & EpollExecutorScheduler.Read) != 0) {
-      readReady = true
+  protected def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
+    if (readReady) {
+      this.readReady = true
       if (readCallback != null) readCallback.run()
     }
   }
 
   def close(): Unit = {
     _isOpen = false
-    ctlDel.run()
+    unmonitor.run()
     if (posix.unistd.close(fd) == -1)
       throw new IOException(s"close: ${errno.errno}")
   }
@@ -166,7 +168,7 @@ object EpollAsyncServerSocketChannel {
 
   def open(): EpollAsyncServerSocketChannel = {
     EpollRuntime.global.compute match {
-      case epoll: EpollExecutorScheduler =>
+      case epoll: EventPollingExecutorScheduler =>
         val fd = posix
           .sys
           .socket
@@ -174,12 +176,10 @@ object EpollAsyncServerSocketChannel {
         if (fd == -1)
           throw new RuntimeException(s"socket: ${errno.errno}")
         val ch = new EpollAsyncServerSocketChannel(fd)
-        ch.ctlDel =
-          epoll.ctl(fd, EpollExecutorScheduler.Read | EpollExecutorScheduler.EdgeTriggered)(
-            ch.callback(_)
-          )
+        ch.unmonitor = epoll.monitor(fd, reads = true, writes = false)(ch)
         ch
-      case _ => throw new RuntimeException("Global compute is not an EpollExecutorScheduler!")
+      case _ =>
+        throw new RuntimeException("Global compute is not an EventPollingExecutorScheduler")
     }
   }
 }
