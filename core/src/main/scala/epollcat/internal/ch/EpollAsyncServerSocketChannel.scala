@@ -47,7 +47,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   private[this] var readReady: Boolean = false
   private[this] var readCallback: Runnable = null
 
-  protected def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
+  protected[epollcat] def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
     if (readReady) {
       this.readReady = true
       if (readCallback != null) readCallback.run()

@@ -55,9 +55,12 @@ private[unsafe] final class EpollExecutorScheduler private (
         var i = 0
         while (i < triggeredEvents) {
           val event = events + i.toLong
-          val cb = fromPtr[Int => Unit](event.data)
+          val cb = fromPtr[EventNotificationCallback](event.data)
           try {
-            cb(event.events.toInt)
+            val e = event.events.toInt
+            val readReady = (e & EPOLLIN) != 0
+            val writeReady = (e & EPOLLOUT) != 0
+            cb.notifyEvents(readReady, writeReady)
           } catch {
             case NonFatal(ex) => reportFailure(ex)
           }
