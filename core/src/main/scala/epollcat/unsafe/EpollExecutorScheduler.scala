@@ -16,8 +16,6 @@
 
 package epollcat.unsafe
 
-import cats.effect.unsafe.PollingExecutorScheduler
-
 import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.Set
@@ -32,12 +30,13 @@ import scala.util.control.NonFatal
 import epoll._
 import epollImplicits._
 
-private[epollcat] final class EpollExecutorScheduler private (
+private[unsafe] final class EpollExecutorScheduler private (
     private[this] val epfd: Int,
     private[this] val maxEvents: Int)
-    extends PollingExecutorScheduler {
+    extends EventPollingExecutorScheduler {
 
-  private[this] val callbacks: Set[Int => Unit] = Collections.newSetFromMap(new IdentityHashMap)
+  private[this] val callbacks: Set[EventNotificationCallback] =
+    Collections.newSetFromMap(new IdentityHashMap)
 
   def poll(timeout: Duration): Boolean = {
     val timeoutIsInfinite = timeout == Duration.Inf
@@ -72,9 +71,11 @@ private[epollcat] final class EpollExecutorScheduler private (
     }
   }
 
-  def ctl(fd: Int, events: Int)(cb: Int => Unit): Runnable = {
+  def monitor(fd: Int, reads: Boolean, writes: Boolean)(
+      cb: EventNotificationCallback): Runnable = {
     val event = stackalloc[epoll_event]()
-    event.events = events.toUInt
+    event.events =
+      (EPOLLET | (if (reads) EPOLLIN else 0) | (if (writes) EPOLLOUT else 0)).toUInt
     event.data = toPtr(cb)
 
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, event) != 0)
@@ -89,10 +90,6 @@ private[epollcat] final class EpollExecutorScheduler private (
     }
   }
 
-  def close(): Unit =
-    if (unistd.close(epfd) != 0)
-      throw new RuntimeException(s"close: ${errno.errno}")
-
   private def toPtr(a: AnyRef): Ptr[Byte] =
     fromRawPtr(Intrinsics.castObjectToRawPtr(a))
 
@@ -100,21 +97,17 @@ private[epollcat] final class EpollExecutorScheduler private (
     Intrinsics.castRawPtrToObject(toRawPtr(ptr)).asInstanceOf[A]
 }
 
-private[epollcat] object EpollExecutorScheduler {
+private[unsafe] object EpollExecutorScheduler {
 
-  import epoll._
-
-  final val Read = epoll.EPOLLIN
-  final val Write = epoll.EPOLLOUT
-  final val EdgeTriggered = epoll.EPOLLET
-
-  def apply(): EpollExecutorScheduler = apply(64)
-
-  def apply(maxEvents: Int): EpollExecutorScheduler = {
+  def apply(maxEvents: Int): (EpollExecutorScheduler, () => Unit) = {
     val epfd = epoll_create1(0)
     if (epfd == -1)
       throw new RuntimeException(s"epoll_create1: ${errno.errno}")
-    new EpollExecutorScheduler(epfd, maxEvents)
+    val epoll = new EpollExecutorScheduler(epfd, maxEvents)
+    val shutdown = () => {
+      if (unistd.close(epfd) != 0) throw new RuntimeException(s"close: ${errno.errno}")
+    }
+    (epoll, shutdown)
   }
 
 }

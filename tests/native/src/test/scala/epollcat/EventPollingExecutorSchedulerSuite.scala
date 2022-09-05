@@ -17,15 +17,15 @@
 package epollcat
 
 import cats.effect.IO
-import epollcat.unsafe.EpollExecutorScheduler
+import epollcat.unsafe.EventPollingExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
 import scala.concurrent.duration._
 
-class EpollExecutorSchedulerSuite extends EpollcatSuite {
+class EventPollingExecutorSchedulerSuite extends EpollcatSuite {
 
   test("installs globally") {
-    assert(EpollRuntime.global.compute.isInstanceOf[EpollExecutorScheduler])
+    assert(EpollRuntime.global.compute.isInstanceOf[EventPollingExecutorScheduler])
   }
 
   test("ceding") {

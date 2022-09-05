@@ -16,8 +16,9 @@
 
 package epollcat.internal.ch
 
-import epollcat.unsafe.EpollExecutorScheduler
 import epollcat.unsafe.EpollRuntime
+import epollcat.unsafe.EventNotificationCallback
+import epollcat.unsafe.EventPollingExecutorScheduler
 
 import java.io.IOException
 import java.net.ConnectException
@@ -41,9 +42,11 @@ import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 
-final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocketChannel(null) {
+final class EpollAsyncSocketChannel private (fd: Int)
+    extends AsynchronousSocketChannel(null)
+    with EventNotificationCallback {
 
-  private var ctlDel: Runnable = null
+  private var unmonitor: Runnable = null
 
   private[this] var _isOpen: Boolean = true
   private[this] var outputShutdown: Boolean = false
@@ -52,21 +55,21 @@ final class EpollAsyncSocketChannel private (fd: Int) extends AsynchronousSocket
   private[this] var writeReady: Boolean = false
   private[this] var writeCallback: Runnable = null
 
-  private def callback(events: Int): Unit = {
-    if ((events & EpollExecutorScheduler.Read) != 0) {
-      readReady = true
+  protected def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
+    if (readReady) {
+      this.readReady = true
       if (readCallback != null) readCallback.run()
     }
 
-    if ((events & EpollExecutorScheduler.Write) != 0) {
-      writeReady = true
+    if (writeReady) {
+      this.writeReady = true
       if (writeCallback != null) writeCallback.run()
     }
   }
 
   def close(): Unit = {
     _isOpen = false
-    ctlDel.run()
+    unmonitor.run()
     if (posix.unistd.close(fd) == -1)
       throw new IOException(s"close: ${errno.errno}")
   }
@@ -384,15 +387,12 @@ object EpollAsyncSocketChannel {
 
   private[ch] def open(fd: CInt): EpollAsyncSocketChannel = {
     EpollRuntime.global.compute match {
-      case epoll: EpollExecutorScheduler =>
+      case epoll: EventPollingExecutorScheduler =>
         val ch = new EpollAsyncSocketChannel(fd)
-        ch.ctlDel = epoll.ctl(
-          fd,
-          EpollExecutorScheduler.Read | EpollExecutorScheduler.Write | EpollExecutorScheduler.EdgeTriggered)(
-          ch.callback(_)
-        )
+        ch.unmonitor = epoll.monitor(fd, reads = true, writes = true)(ch)
         ch
-      case _ => throw new RuntimeException("Global compute is not an EpollExecutorScheduler!")
+      case _ =>
+        throw new RuntimeException("Global compute is not an EventPollingExecutorScheduler")
     }
   }
 }
