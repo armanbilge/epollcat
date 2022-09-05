@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package epollcat.unsafe
+package epollcat
+package unsafe
 
 import cats.effect.unsafe.PollingExecutorScheduler
+
+import scala.scalanative.meta.LinktimeInfo
 
 private[epollcat] abstract class EventPollingExecutorScheduler
     extends PollingExecutorScheduler {
@@ -31,8 +34,10 @@ private[epollcat] trait EventNotificationCallback {
 
 private[epollcat] object EventPollingExecutorScheduler {
 
-  def apply(maxEvents: Int): (EventPollingExecutorScheduler, () => Unit) = {
-    EpollExecutorScheduler(maxEvents)
-  }
+  def apply(maxEvents: Int): (EventPollingExecutorScheduler, () => Unit) =
+    if (LinktimeInfo.isLinux)
+      EpollExecutorScheduler(maxEvents)
+    else
+      throw new UnsupportedPlatformError
 
 }
