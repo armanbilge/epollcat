@@ -22,5 +22,5 @@ package epollcat;
  * cannot be dead-code-eliminated.
  */
 public final class UnsupportedPlatformError extends Error {
-
+	private static final long serialVersionUID = 0L;
 }
