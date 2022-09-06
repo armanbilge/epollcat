@@ -67,7 +67,7 @@ final class EpollAsyncSocketChannel private (fd: Int)
     }
   }
 
-  def close(): Unit = {
+  def close(): Unit = if (isOpen()) {
     _isOpen = false
     unmonitor.run()
     if (posix.unistd.close(fd) == -1)
