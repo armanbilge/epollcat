@@ -9,6 +9,7 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / crossScalaVersions := Seq("3.1.3", "2.12.16", "2.13.8")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
+ThisBuild / githubWorkflowOSes += "macos-latest"
 
 val catsEffectVersion = "3.4-519e5ce-SNAPSHOT"
 val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
