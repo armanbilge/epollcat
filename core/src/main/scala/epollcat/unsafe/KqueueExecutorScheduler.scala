@@ -17,9 +17,7 @@
 package epollcat.unsafe
 
 import java.util.ArrayDeque
-import java.util.Collections
-import java.util.IdentityHashMap
-import java.util.Set
+import scala.collection.mutable.LongMap
 import scala.concurrent.duration._
 import scala.scalanative.libc.errno
 import scala.scalanative.posix.time
@@ -38,14 +36,13 @@ private[unsafe] final class KqueueExecutorScheduler(
     private[this] val maxEvents: Int)
     extends EventPollingExecutorScheduler {
 
-  private[this] val changes: ArrayDeque[Change] = new ArrayDeque
-  private[this] val callbacks: Set[EventNotificationCallback] =
-    Collections.newSetFromMap(new IdentityHashMap)
+  private[this] val changes: ArrayDeque[EvAdd] = new ArrayDeque
+  private[this] val callbacks: LongMap[EventNotificationCallback] = new LongMap
 
   def poll(timeout: Duration): Boolean = {
     val timeoutIsInfinite = timeout == Duration.Inf
     val timeoutIsZero = timeout == Duration.Zero
-    val noCallbacks = callbacks.isEmpty()
+    val noCallbacks = callbacks.isEmpty
     val changeCount = changes.size()
 
     if ((timeoutIsInfinite || timeoutIsZero) && noCallbacks && changeCount == 0)
@@ -55,18 +52,11 @@ private[unsafe] final class KqueueExecutorScheduler(
       val changelist = stackalloc[kevent64_s](changeCount.toLong)
       var change = changelist
       while (!changes.isEmpty()) {
-        changes.poll() match {
-          case Monitor(fd, filter, cb) =>
-            change.ident = fd.toULong
-            change.filter = filter
-            change.flags = EV_ADD.toUShort
-            change.udata = EventNotificationCallback.toPtr(cb)
-            callbacks.add(cb)
-          case Unmonitor(fd, cb) =>
-            change.ident = fd.toULong
-            change.flags = EV_DELETE.toUShort
-            callbacks.remove(cb)
-        }
+        val evAdd = changes.poll()
+        change.ident = evAdd.fd.toULong
+        change.filter = evAdd.filter
+        change.flags = (EV_ADD | EV_CLEAR).toUShort
+        change.udata = EventNotificationCallback.toPtr(evAdd.cb)
         change += 1
       }
 
@@ -89,13 +79,23 @@ private[unsafe] final class KqueueExecutorScheduler(
         var i = 0
         var event = eventlist
         while (i < triggeredEvents) {
-          val cb = EventNotificationCallback.fromPtr(event.udata)
-          try {
+          if ((event.flags.toLong & EV_ERROR) != 0) {
+
+            // TODO it would be interesting to propagate this failure via the callback
+            reportFailure(new RuntimeException(s"kevent64: ${event.data}"))
+
+          } else if (callbacks.contains(event.ident.toLong)) {
             val filter = event.filter
-            cb.notifyEvents(filter == EVFILT_READ, filter == EVFILT_WRITE)
-          } catch {
-            case NonFatal(ex) => reportFailure(ex)
+            val cb = EventNotificationCallback.fromPtr(event.udata)
+
+            try {
+              cb.notifyEvents(filter == EVFILT_READ, filter == EVFILT_WRITE)
+            } catch {
+              case NonFatal(ex) =>
+                reportFailure(ex)
+            }
           }
+
           i += 1
           event += 1
         }
@@ -103,17 +103,21 @@ private[unsafe] final class KqueueExecutorScheduler(
         throw new RuntimeException(s"kevent64: ${errno.errno}")
       }
 
-      !callbacks.isEmpty()
+      !changes.isEmpty() || callbacks.nonEmpty
     }
   }
 
   def monitor(fd: Int, reads: Boolean, writes: Boolean)(
       cb: EventNotificationCallback): Runnable = {
     if (reads)
-      changes.add(Monitor(fd, EVFILT_READ, cb))
+      changes.add(EvAdd(fd, EVFILT_READ, cb))
     if (writes)
-      changes.add(Monitor(fd, EVFILT_WRITE, cb))
-    () => { changes.add(Unmonitor(fd, cb)); () }
+      changes.add(EvAdd(fd, EVFILT_WRITE, cb))
+
+    callbacks(fd.toLong) = cb
+
+    // closed fds are deleted from kqueue automatically
+    () => { callbacks.remove(fd.toLong); () }
   }
 
 }
@@ -131,12 +135,10 @@ private[unsafe] object KqueueExecutorScheduler {
     (kqec, shutdown)
   }
 
-  private sealed abstract class Change
-  private final case class Monitor(
+  private final case class EvAdd(
       fd: Int,
       filter: Short,
       cb: EventNotificationCallback
-  ) extends Change
-  private final case class Unmonitor(fd: Int, cb: EventNotificationCallback) extends Change
+  )
 
 }

@@ -33,6 +33,7 @@ private[unsafe] object event {
   final val EV_ADD = 0x0001
   final val EV_DELETE = 0x0002
   final val EV_CLEAR = 0x0020
+  final val EV_ERROR = 0x4000
 
   type kevent64_s
 
@@ -66,6 +67,8 @@ private[unsafe] object eventImplicits {
     def flags: CUnsignedShort = !(kevent64_s.asInstanceOf[Ptr[CUnsignedShort]] + 5)
     def flags_=(flags: CUnsignedShort): Unit =
       !(kevent64_s.asInstanceOf[Ptr[CUnsignedShort]] + 5) = flags
+
+    def data: CLong = !(kevent64_s.asInstanceOf[Ptr[CLong]] + 3)
 
     def udata: Ptr[Byte] = !(kevent64_s.asInstanceOf[Ptr[Ptr[Byte]]] + 4)
     def udata_=(udata: Ptr[Byte]): Unit =
