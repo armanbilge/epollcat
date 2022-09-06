@@ -19,7 +19,10 @@ package unsafe
 
 import cats.effect.unsafe.PollingExecutorScheduler
 
+import scala.scalanative.annotation.alwaysinline
 import scala.scalanative.meta.LinktimeInfo
+import scala.scalanative.runtime._
+import scala.scalanative.unsafe._
 
 private[epollcat] abstract class EventPollingExecutorScheduler
     extends PollingExecutorScheduler {
@@ -32,11 +35,21 @@ private[epollcat] trait EventNotificationCallback {
   protected[epollcat] def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit
 }
 
+private[epollcat] object EventNotificationCallback {
+  @alwaysinline private[unsafe] def toPtr(cb: EventNotificationCallback): Ptr[Byte] =
+    fromRawPtr(Intrinsics.castObjectToRawPtr(cb))
+
+  @alwaysinline private[unsafe] def fromPtr[A](ptr: Ptr[Byte]): EventNotificationCallback =
+    Intrinsics.castRawPtrToObject(toRawPtr(ptr)).asInstanceOf[EventNotificationCallback]
+}
+
 private[epollcat] object EventPollingExecutorScheduler {
 
   def apply(maxEvents: Int): (EventPollingExecutorScheduler, () => Unit) =
     if (LinktimeInfo.isLinux)
       EpollExecutorScheduler(maxEvents)
+    else if (LinktimeInfo.isMac)
+      KqueueExecutorScheduler(maxEvents)
     else
       throw new UnsupportedPlatformError
 

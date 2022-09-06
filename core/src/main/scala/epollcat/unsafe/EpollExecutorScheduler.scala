@@ -22,7 +22,6 @@ import java.util.Set
 import scala.concurrent.duration._
 import scala.scalanative.libc.errno
 import scala.scalanative.posix.unistd
-import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 import scala.util.control.NonFatal
@@ -55,7 +54,7 @@ private[unsafe] final class EpollExecutorScheduler private (
         var i = 0
         while (i < triggeredEvents) {
           val event = events + i.toLong
-          val cb = fromPtr[EventNotificationCallback](event.data)
+          val cb = EventNotificationCallback.fromPtr(event.data)
           try {
             val e = event.events.toInt
             val readReady = (e & EPOLLIN) != 0
@@ -79,7 +78,7 @@ private[unsafe] final class EpollExecutorScheduler private (
     val event = stackalloc[epoll_event]()
     event.events =
       (EPOLLET | (if (reads) EPOLLIN else 0) | (if (writes) EPOLLOUT else 0)).toUInt
-    event.data = toPtr(cb)
+    event.data = EventNotificationCallback.toPtr(cb)
 
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, event) != 0)
       throw new RuntimeException(s"epoll_ctl: ${errno.errno}")
@@ -93,11 +92,6 @@ private[unsafe] final class EpollExecutorScheduler private (
     }
   }
 
-  private def toPtr(a: AnyRef): Ptr[Byte] =
-    fromRawPtr(Intrinsics.castObjectToRawPtr(a))
-
-  private def fromPtr[A](ptr: Ptr[Byte]): A =
-    Intrinsics.castRawPtrToObject(toRawPtr(ptr)).asInstanceOf[A]
 }
 
 private[unsafe] object EpollExecutorScheduler {

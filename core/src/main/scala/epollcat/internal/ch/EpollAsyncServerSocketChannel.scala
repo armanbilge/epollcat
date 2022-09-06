@@ -36,6 +36,7 @@ import scala.scalanative.libc.errno
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
+import scala.scalanative.meta.LinktimeInfo
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
     extends AsynchronousServerSocketChannel(null)
@@ -131,7 +132,10 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val clientFd = syssocket.accept4(fd, null, null, EpollAsyncSocketChannel.SOCK_NONBLOCK)
+      val clientFd =
+        if (LinktimeInfo.isLinux)
+          syssocket.accept4(fd, null, null, EpollAsyncSocketChannel.SOCK_NONBLOCK)
+        else ???
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
