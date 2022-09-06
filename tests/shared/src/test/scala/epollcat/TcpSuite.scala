@@ -33,6 +33,8 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
+import scala.concurrent.TimeoutException
+import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
 
@@ -79,8 +81,15 @@ class TcpSuite extends EpollcatSuite {
 
     def accept: Resource[IO, IOSocketChannel] =
       Resource
-        .make(IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb))))(ch =>
-          IO(ch.close()))
+        .makeFull[IO, AsynchronousSocketChannel] { poll =>
+          poll {
+            IO.async { cb =>
+              IO(ch.accept(null, toHandler(cb)))
+                // it seems the only way to cancel accept is to close the socket :(
+                .as(Some(IO(ch.close())))
+            }
+          }
+        }(ch => IO(ch.close()))
         .map(new IOSocketChannel(_))
 
     def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
@@ -268,6 +277,18 @@ class TcpSuite extends EpollcatSuite {
         } yield ()
       }
     }
+  }
+
+  test("IOServerSocketChannel.accept is cancelable") {
+    // note that this test targets IOServerSocketChannel#accept,
+    // not the underlying AsynchronousSocketChannel#accept implementation
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .flatMap(_.accept)
+      .use_
+      .timeout(100.millis)
+      .intercept[TimeoutException]
   }
 
 }
