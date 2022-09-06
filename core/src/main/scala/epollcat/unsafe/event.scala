@@ -22,7 +22,7 @@ import scala.scalanative.unsafe._
 
 @extern
 @nowarn
-private[unsafe] object kqueue {
+private[unsafe] object event {
 
   final val EVFILT_READ = -1
   final val EVFILT_WRITE = -2
@@ -50,9 +50,9 @@ private[unsafe] object kqueue {
 
 }
 
-private[unsafe] object kqueueImplicits {
+private[unsafe] object eventImplicits {
 
-  import kqueue._
+  import event._
 
   implicit final class kevent64_sOps(kevent64_s: Ptr[kevent64_s]) {
     def ident: CUnsignedLongInt = !(kevent64_s.asInstanceOf[Ptr[CUnsignedLongInt]])

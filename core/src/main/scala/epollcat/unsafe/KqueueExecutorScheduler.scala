@@ -30,8 +30,8 @@ import scala.scalanative.unsigned._
 import scala.util.control.NonFatal
 
 import KqueueExecutorScheduler._
-import kqueue._
-import kqueueImplicits._
+import event._
+import eventImplicits._
 
 private[unsafe] final class KqueueExecutorScheduler(
     private[this] val kqfd: Int,
