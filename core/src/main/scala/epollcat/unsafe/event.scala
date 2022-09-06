@@ -68,11 +68,11 @@ private[unsafe] object eventImplicits {
     def flags_=(flags: CUnsignedShort): Unit =
       !(kevent64_s.asInstanceOf[Ptr[CUnsignedShort]] + 5) = flags
 
-    def data: CLong = !(kevent64_s.asInstanceOf[Ptr[CLong]] + 3)
+    def data: CLong = !(kevent64_s.asInstanceOf[Ptr[CLong]] + 2)
 
-    def udata: Ptr[Byte] = !(kevent64_s.asInstanceOf[Ptr[Ptr[Byte]]] + 4)
+    def udata: Ptr[Byte] = !(kevent64_s.asInstanceOf[Ptr[Ptr[Byte]]] + 3)
     def udata_=(udata: Ptr[Byte]): Unit =
-      !(kevent64_s.asInstanceOf[Ptr[Ptr[Byte]]] + 4) = udata
+      !(kevent64_s.asInstanceOf[Ptr[Ptr[Byte]]] + 3) = udata
   }
 
   implicit val kevent64_sTag: Tag[kevent64_s] =
