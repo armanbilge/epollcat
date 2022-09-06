@@ -138,7 +138,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
         if (LinktimeInfo.isLinux)
           socket.accept4(fd, null, null, SOCK_NONBLOCK)
         else
-          posix.sys.socket.accept(fd, null, null)
+          socket.accept(fd, null, null)
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
