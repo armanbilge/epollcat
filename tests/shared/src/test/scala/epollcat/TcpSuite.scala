@@ -33,7 +33,6 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
-import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
@@ -287,8 +286,7 @@ class TcpSuite extends EpollcatSuite {
       .evalTap(_.bind(new InetSocketAddress(0)))
       .flatMap(_.accept)
       .use_
-      .timeout(100.millis)
-      .intercept[TimeoutException]
+      .timeoutTo(100.millis, IO.unit)
   }
 
 }
