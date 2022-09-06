@@ -82,7 +82,11 @@ private[unsafe] final class KqueueExecutorScheduler(
           if ((event.flags.toLong & EV_ERROR) != 0) {
 
             // TODO it would be interesting to propagate this failure via the callback
-            reportFailure(new RuntimeException(s"kevent64: ${event.data}"))
+            reportFailure(
+              new RuntimeException(
+                s"kevent64: flags=${event.flags.toHexString} errno=${event.data}"
+              )
+            )
 
           } else if (callbacks.contains(event.ident.toLong)) {
             val filter = event.filter
