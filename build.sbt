@@ -21,8 +21,7 @@ lazy val core = project
   .settings(
     name := "epollcat",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "cats-effect" % catsEffectVersion,
-      "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+      "com.armanbilge" %%% "cats-effect" % catsEffectVersion
     )
   )
 
@@ -37,7 +36,7 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
+      "org.typelevel" %%% "munit-cats-effect" % "2.0-f307b51-SNAPSHOT" % Test
     )
   )
 
