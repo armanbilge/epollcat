@@ -51,13 +51,17 @@ private[unsafe] final class KqueueExecutorScheduler(
 
       val changelist = stackalloc[kevent64_s](changeCount.toLong)
       var change = changelist
+      var finalChangeCount = 0
       while (!changes.isEmpty()) {
         val evAdd = changes.poll()
-        change.ident = evAdd.fd.toULong
-        change.filter = evAdd.filter
-        change.flags = (EV_ADD | EV_CLEAR).toUShort
-        change.udata = EventNotificationCallback.toPtr(evAdd.cb)
-        change += 1
+        if (!evAdd.canceled) {
+          change.ident = evAdd.fd.toULong
+          change.filter = evAdd.filter
+          change.flags = (EV_ADD | EV_CLEAR).toUShort
+          change.udata = EventNotificationCallback.toPtr(evAdd.cb)
+          change += 1
+          finalChangeCount += 1
+        }
       }
 
       val timeoutSpec =
@@ -73,7 +77,7 @@ private[unsafe] final class KqueueExecutorScheduler(
       val eventlist = stackalloc[kevent64_s](maxEvents.toLong)
       val flags = (if (timeoutIsZero) KEVENT_FLAG_IMMEDIATE else KEVENT_FLAG_NONE).toUInt
       val triggeredEvents =
-        kevent64(kqfd, changelist, changeCount, eventlist, maxEvents, flags, timeoutSpec)
+        kevent64(kqfd, changelist, finalChangeCount, eventlist, maxEvents, flags, timeoutSpec)
 
       if (triggeredEvents >= 0) {
         var i = 0
@@ -113,15 +117,30 @@ private[unsafe] final class KqueueExecutorScheduler(
 
   def monitor(fd: Int, reads: Boolean, writes: Boolean)(
       cb: EventNotificationCallback): Runnable = {
-    if (reads)
-      changes.add(EvAdd(fd, EVFILT_READ, cb))
-    if (writes)
-      changes.add(EvAdd(fd, EVFILT_WRITE, cb))
+
+    val readEvent =
+      if (reads)
+        EvAdd(fd, EVFILT_READ, cb)
+      else null
+
+    val writeEvent =
+      if (writes)
+        EvAdd(fd, EVFILT_WRITE, cb)
+      else null
+
+    if (readEvent != null)
+      changes.add(readEvent)
+    if (writeEvent != null)
+      changes.add(writeEvent)
 
     callbacks(fd.toLong) = cb
 
-    // closed fds are deleted from kqueue automatically
-    () => { callbacks.remove(fd.toLong); () }
+    () => {
+      // closed fds are deleted from kqueue automatically
+      callbacks.remove(fd.toLong)
+      if (readEvent != null) readEvent.cancel()
+      if (writeEvent != null) writeEvent.cancel()
+    }
   }
 
 }
@@ -143,6 +162,9 @@ private[unsafe] object KqueueExecutorScheduler {
       fd: Int,
       filter: Short,
       cb: EventNotificationCallback
-  )
+  ) {
+    var canceled = false
+    def cancel() = canceled = true
+  }
 
 }
