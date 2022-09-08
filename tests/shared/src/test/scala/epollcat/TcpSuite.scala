@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
 
-  override def munitIOTimeout = 10.seconds
+  override def munitIOTimeout = 20.seconds
 
   def toHandler[A](cb: Either[Throwable, A] => Unit): CompletionHandler[A, Any] =
     new CompletionHandler[A, Any] {
