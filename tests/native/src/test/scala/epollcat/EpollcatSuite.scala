@@ -20,5 +20,5 @@ import epollcat.unsafe.EpollRuntime
 import munit.CatsEffectSuite
 
 trait EpollcatSuite extends CatsEffectSuite {
-  override lazy val munitIoRuntime = EpollRuntime.global
+  override def munitIORuntime = EpollRuntime.global
 }
