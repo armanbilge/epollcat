@@ -46,7 +46,7 @@ private[unsafe] final class KqueueExecutorScheduler(
     val changeCount = changes.size()
 
     if ((timeoutIsInfinite || timeoutIsZero) && noCallbacks && changeCount == 0)
-      false // nothing to do here
+      false // nothing to do here. refer to scaladoc on PollingExecutorScheduler#poll
     else {
 
       val changelist = stackalloc[kevent64_s](changeCount.toLong)

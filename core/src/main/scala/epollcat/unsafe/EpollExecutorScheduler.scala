@@ -42,7 +42,7 @@ private[unsafe] final class EpollExecutorScheduler private (
     val noCallbacks = callbacks.isEmpty()
 
     if ((timeoutIsInfinite || timeout == Duration.Zero) && noCallbacks)
-      false // nothing to do here
+      false // nothing to do here. refer to scaladoc on PollingExecutorScheduler#poll
     else {
       val timeoutMillis = if (timeoutIsInfinite) -1 else timeout.toMillis.toInt
 
