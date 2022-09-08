@@ -42,15 +42,15 @@ private[ch] object SocketHelpers {
     if (fd == -1)
       throw new RuntimeException(s"socket: ${errno.errno}")
 
-    setNonBlocking(fd)
+    if (!LinktimeInfo.isLinux) setNonBlocking(fd)
 
     fd
   }
 
-  def setNonBlocking(fd: CInt): Unit = if (!LinktimeInfo.isLinux) {
+  def setNonBlocking(fd: CInt): Unit =
     if (posix.fcntl.fcntl(fd, posix.fcntl.F_SETFL, posix.fcntl.O_NONBLOCK) != 0)
       throw new IOException(s"fcntl: ${errno.errno}")
-  }
+    else ()
 
   def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()

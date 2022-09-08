@@ -151,7 +151,8 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
         }
       } else {
         try {
-          SocketHelpers.setNonBlocking(clientFd)
+          if (!LinktimeInfo.isLinux)
+            SocketHelpers.setNonBlocking(clientFd)
           handler.completed(EpollAsyncSocketChannel.open(clientFd), attachment)
         } catch {
           case NonFatal(ex) =>
