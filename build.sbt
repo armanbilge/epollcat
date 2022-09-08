@@ -36,7 +36,7 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "munit-cats-effect" % "2.0-f307b51-SNAPSHOT" % Test
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
     )
   )
 
