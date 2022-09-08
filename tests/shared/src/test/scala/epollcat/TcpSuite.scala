@@ -152,27 +152,26 @@ class TcpSuite extends EpollcatSuite {
           } yield ()
         }
 
-        serverCh.bind(new InetSocketAddress(0)) *> server.background.use { _ =>
-          val ch = clientCh
-          for {
-            serverAddr <- serverCh.localAddress
-            _ <- ch.connect(serverAddr)
-            clientLocalAddr <- ch.localAddress
-            _ <- IO(
-              assert(clue(clientLocalAddr.asInstanceOf[InetSocketAddress].getPort()) != 0)
-            )
-            bb <- IO(ByteBuffer.wrap("ping".getBytes))
-            wrote <- ch.write(bb)
-            _ <- IO(assertEquals(bb.remaining(), 0))
-            _ <- IO(assertEquals(wrote, 4))
-            bb <- IO(ByteBuffer.allocate(4))
-            readed <- ch.read(bb)
-            _ <- IO(assertEquals(readed, 4))
-            _ <- IO(assertEquals(bb.remaining(), 0))
-            res <- IO(bb.position(0)) *> IO(decode(bb))
-            _ <- IO(assertEquals(res, "pong"))
-          } yield ()
-        }
+        val client = for {
+          serverAddr <- serverCh.localAddress
+          _ <- clientCh.connect(serverAddr)
+          clientLocalAddr <- clientCh.localAddress
+          _ <- IO(
+            assert(clue(clientLocalAddr.asInstanceOf[InetSocketAddress].getPort()) != 0)
+          )
+          bb <- IO(ByteBuffer.wrap("ping".getBytes))
+          wrote <- clientCh.write(bb)
+          _ <- IO(assertEquals(bb.remaining(), 0))
+          _ <- IO(assertEquals(wrote, 4))
+          bb <- IO(ByteBuffer.allocate(4))
+          readed <- clientCh.read(bb)
+          _ <- IO(assertEquals(readed, 4))
+          _ <- IO(assertEquals(bb.remaining(), 0))
+          res <- IO(bb.position(0)) *> IO(decode(bb))
+          _ <- IO(assertEquals(res, "pong"))
+        } yield ()
+
+        serverCh.bind(new InetSocketAddress(0)) *> server.both(client).void
     }
   }
 
