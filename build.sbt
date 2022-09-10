@@ -9,9 +9,17 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / crossScalaVersions := Seq("3.1.3", "2.12.16", "2.13.8")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
+ThisBuild / githubWorkflowOSes :=
+  Seq("ubuntu-20.04", "ubuntu-22.04", "macos-11", "macos-12")
+ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
+  for {
+    scala <- crossScalaVersions.value.init
+    os <- githubWorkflowOSes.value.tail
+  } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
+}
 
-val catsEffectVersion = "3.4-519e5ce-SNAPSHOT"
-val munitCEVersion = "2.0-4e051ab-SNAPSHOT"
+val catsEffectVersion = "3.3.14-1-5d11fe9"
+val munitCEVersion = "2.0-5e03bfc"
 
 lazy val root = tlCrossRootProject.aggregate(core, tests)
 
@@ -21,8 +29,7 @@ lazy val core = project
   .settings(
     name := "epollcat",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "cats-effect" % catsEffectVersion,
-      "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+      "org.typelevel" %%% "cats-effect" % catsEffectVersion
     )
   )
 
@@ -30,15 +37,8 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .in(file("tests"))
   .enablePlugins(NoPublishPlugin)
   .nativeConfigure(_.dependsOn(core))
-  .nativeSettings(
+  .settings(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "munit-cats-effect" % munitCEVersion % Test
+      "org.typelevel" %%% "munit-cats-effect" % munitCEVersion % Test
     )
   )
-  .jvmSettings(
-    libraryDependencies ++= Seq(
-      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M1" % Test
-    )
-  )
-
-ThisBuild / resolvers += "s01" at "https://s01.oss.sonatype.org/content/repositories/snapshots/"

@@ -30,12 +30,15 @@ import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.util.concurrent.Future
-import scala.annotation.nowarn
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
+import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
+import scala.util.control.NonFatal
+
+import socket._
 
 final class EpollAsyncServerSocketChannel private (fd: Int)
     extends AsynchronousServerSocketChannel(null)
@@ -54,7 +57,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
     }
   }
 
-  def close(): Unit = {
+  def close(): Unit = if (isOpen()) {
     _isOpen = false
     unmonitor.run()
     if (posix.unistd.close(fd) == -1)
@@ -131,7 +134,11 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val clientFd = syssocket.accept4(fd, null, null, EpollAsyncSocketChannel.SOCK_NONBLOCK)
+      val clientFd =
+        if (LinktimeInfo.isLinux)
+          socket.accept4(fd, null, null, SOCK_NONBLOCK)
+        else
+          socket.accept(fd, null, null)
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
@@ -143,7 +150,14 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           handler.failed(new IOException(s"accept: ${errno.errno}"), attachment)
         }
       } else {
-        handler.completed(EpollAsyncSocketChannel.open(clientFd), attachment)
+        try {
+          if (!LinktimeInfo.isLinux)
+            SocketHelpers.setNonBlocking(clientFd)
+          handler.completed(EpollAsyncSocketChannel.open(clientFd), attachment)
+        } catch {
+          case NonFatal(ex) =>
+            handler.failed(ex, attachment)
+        }
       }
     } else {
       readCallback = () => {
@@ -164,17 +178,11 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
 }
 
 object EpollAsyncServerSocketChannel {
-  private final val SOCK_NONBLOCK = 2048
 
   def open(): EpollAsyncServerSocketChannel = {
     EpollRuntime.global.compute match {
       case epoll: EventPollingExecutorScheduler =>
-        val fd = posix
-          .sys
-          .socket
-          .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
-        if (fd == -1)
-          throw new RuntimeException(s"socket: ${errno.errno}")
+        val fd = SocketHelpers.mkNonBlocking()
         val ch = new EpollAsyncServerSocketChannel(fd)
         ch.unmonitor = epoll.monitor(fd, reads = true, writes = false)(ch)
         ch
@@ -182,10 +190,4 @@ object EpollAsyncServerSocketChannel {
         throw new RuntimeException("Global compute is not an EventPollingExecutorScheduler")
     }
   }
-}
-
-@extern
-@nowarn
-private[ch] object syssocket {
-  def accept4(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte], flags: CInt): CInt = extern
 }

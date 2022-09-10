@@ -33,8 +33,11 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
+import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
+
+  override def munitIOTimeout = 20.seconds
 
   def toHandler[A](cb: Either[Throwable, A] => Unit): CompletionHandler[A, Any] =
     new CompletionHandler[A, Any] {
@@ -79,8 +82,15 @@ class TcpSuite extends EpollcatSuite {
 
     def accept: Resource[IO, IOSocketChannel] =
       Resource
-        .make(IO.async_[AsynchronousSocketChannel](cb => ch.accept(null, toHandler(cb))))(ch =>
-          IO(ch.close()))
+        .makeFull[IO, AsynchronousSocketChannel] { poll =>
+          poll {
+            IO.async { cb =>
+              IO(ch.accept(null, toHandler(cb)))
+                // it seems the only way to cancel accept is to close the socket :(
+                .as(Some(IO(ch.close())))
+            }
+          }
+        }(ch => IO(ch.close()))
         .map(new IOSocketChannel(_))
 
     def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
@@ -142,27 +152,26 @@ class TcpSuite extends EpollcatSuite {
           } yield ()
         }
 
-        serverCh.bind(new InetSocketAddress(0)) *> server.background.use { _ =>
-          val ch = clientCh
-          for {
-            serverAddr <- serverCh.localAddress
-            _ <- ch.connect(serverAddr)
-            clientLocalAddr <- ch.localAddress
-            _ <- IO(
-              assert(clue(clientLocalAddr.asInstanceOf[InetSocketAddress].getPort()) != 0)
-            )
-            bb <- IO(ByteBuffer.wrap("ping".getBytes))
-            wrote <- ch.write(bb)
-            _ <- IO(assertEquals(bb.remaining(), 0))
-            _ <- IO(assertEquals(wrote, 4))
-            bb <- IO(ByteBuffer.allocate(4))
-            readed <- ch.read(bb)
-            _ <- IO(assertEquals(readed, 4))
-            _ <- IO(assertEquals(bb.remaining(), 0))
-            res <- IO(bb.position(0)) *> IO(decode(bb))
-            _ <- IO(assertEquals(res, "pong"))
-          } yield ()
-        }
+        val client = for {
+          serverAddr <- serverCh.localAddress
+          _ <- clientCh.connect(serverAddr)
+          clientLocalAddr <- clientCh.localAddress
+          _ <- IO(
+            assert(clue(clientLocalAddr.asInstanceOf[InetSocketAddress].getPort()) != 0)
+          )
+          bb <- IO(ByteBuffer.wrap("ping".getBytes))
+          wrote <- clientCh.write(bb)
+          _ <- IO(assertEquals(bb.remaining(), 0))
+          _ <- IO(assertEquals(wrote, 4))
+          bb <- IO(ByteBuffer.allocate(4))
+          readed <- clientCh.read(bb)
+          _ <- IO(assertEquals(readed, 4))
+          _ <- IO(assertEquals(bb.remaining(), 0))
+          res <- IO(bb.position(0)) *> IO(decode(bb))
+          _ <- IO(assertEquals(res, "pong"))
+        } yield ()
+
+        serverCh.bind(new InetSocketAddress(0)) *> server.both(client).void
     }
   }
 
@@ -268,6 +277,17 @@ class TcpSuite extends EpollcatSuite {
         } yield ()
       }
     }
+  }
+
+  test("IOServerSocketChannel.accept is cancelable") {
+    // note that this test targets IOServerSocketChannel#accept,
+    // not the underlying AsynchronousSocketChannel#accept implementation
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress(0)))
+      .flatMap(_.accept)
+      .use_
+      .timeoutTo(100.millis, IO.unit)
   }
 
 }
