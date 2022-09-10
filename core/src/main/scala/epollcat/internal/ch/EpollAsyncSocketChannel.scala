@@ -373,15 +373,9 @@ final class EpollAsyncSocketChannel private (fd: Int)
 }
 
 object EpollAsyncSocketChannel {
-  final val SOCK_NONBLOCK = 2048
 
   def open(): EpollAsyncSocketChannel = {
-    val fd = posix
-      .sys
-      .socket
-      .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
-    if (fd == -1)
-      throw new RuntimeException(s"socket: ${errno.errno}")
+    val fd = SocketHelpers.mkNonBlocking()
     open(fd)
   }
 

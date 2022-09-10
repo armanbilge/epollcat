@@ -9,6 +9,14 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / crossScalaVersions := Seq("3.1.3", "2.12.16", "2.13.8")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
+ThisBuild / githubWorkflowOSes :=
+  Seq("ubuntu-20.04", "ubuntu-22.04", "macos-11", "macos-12")
+ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
+  for {
+    scala <- crossScalaVersions.value.init
+    os <- githubWorkflowOSes.value.tail
+  } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
+}
 
 val catsEffectVersion = "3.3.14-1-5d11fe9"
 val munitCEVersion = "2.0-5e03bfc"

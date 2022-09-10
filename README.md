@@ -1,6 +1,6 @@
 # epollcat
 
-An experimental [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), based on the Linux [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html).
+An experimental [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), implemented with the [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html) on Linux and the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue) on macOS.
 
 The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
@@ -9,7 +9,7 @@ Please try it and contribute bug reports and fixes! Snapshots are available [her
 ```scala
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 libraryDependencies ++= Seq(
-  "com.armanbilge" %%% "epollcat" % "0.0-da90d3d-SNAPSHOT" // or latest commit
+  "com.armanbilge" %%% "epollcat" % "0.0-dae8f73-SNAPSHOT" // or latest commit
 )
 ```
 
@@ -41,7 +41,7 @@ Actually, no :) inside `EpollRuntime.global` you will find a vanilla `ExecutionC
 
 ### macOS support?
 
-Despite the project name, I would like to support macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). This is tracked in [#2](https://github.com/armanbilge/epollcat/issues/2). macOS is not my daily driver so a contribution here would be very welcome!
+Despite the project name, epollcat supports macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue).
 
 ### Windows support?
 
@@ -51,7 +51,7 @@ Sorry, nope :)
 
 First of all, I think a [libuv](https://libuv.org/)-based runtime is a great idea, particularly due to the cross-platform compatibility and also because it provides async DNS and file system APIs (via its own blocking pool). If anyone wants to work on this I would be very happy to help you get started!
 
-I thought long and hard about this and where I should best put my time and energy. Here is some of my reasoning.
+I thought a lot about this and where I should best put my time and energy. Here is some of my reasoning.
 
 1. Actually, libuv is a bit too high-level for our needs: it essentially offers an entire runtime, including a scheduler and a blocking pool. Ideally we would use only its cross-platform I/O polling capability within our own Cats Effect runtime, but this does not seem to be exposed unfortunately.
 
