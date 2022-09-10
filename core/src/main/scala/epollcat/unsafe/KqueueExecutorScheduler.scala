@@ -136,8 +136,14 @@ private[unsafe] final class KqueueExecutorScheduler(
     callbacks(fd.toLong) = cb
 
     () => {
-      // closed fds are deleted from kqueue automatically
+      // we do not need to explicitly unregister the fd with the kqueue,
+      // b/c it will be unregistered automatically when the fd is closed
+
+      // release the callback, so it can be GCed
       callbacks.remove(fd.toLong)
+
+      // cancel the events, such that if they are currently pending in the
+      // changes queue awaiting registration, they will not be registered
       if (readEvent != null) readEvent.cancel()
       if (writeEvent != null) writeEvent.cancel()
     }
