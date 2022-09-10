@@ -1,6 +1,6 @@
 # epollcat
 
-An experimental [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), based on the Linux [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html).
+An experimental [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), implemented with the [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html) on Linux and the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue) on macOS.
 
 The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
@@ -9,7 +9,7 @@ Please try it and contribute bug reports and fixes! Snapshots are available [her
 ```scala
 resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 libraryDependencies ++= Seq(
-  "com.armanbilge" %%% "epollcat" % "0.0-da90d3d-SNAPSHOT" // or latest commit
+  "com.armanbilge" %%% "epollcat" % "0.0-dae8f73-SNAPSHOT" // or latest commit
 )
 ```
 
@@ -41,7 +41,7 @@ Actually, no :) inside `EpollRuntime.global` you will find a vanilla `ExecutionC
 
 ### macOS support?
 
-Despite the project name, I would like to support macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue). This is tracked in [#2](https://github.com/armanbilge/epollcat/issues/2). macOS is not my daily driver so a contribution here would be very welcome!
+Despite the project name, epollcat supports macOS as well via the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue).
 
 ### Windows support?
 
