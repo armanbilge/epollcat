@@ -85,8 +85,10 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           hints,
           addrinfo
         )
-      if (rtn != 0)
-        throw new IOException(s"getaddrinfo: ${rtn}")
+      if (rtn != 0) {
+        val gaiMsg = SocketHelpers.getGaiErrorMessage(rtn, addr)
+        throw new IOException(s"getaddrinfo: ${gaiMsg}")
+      }
     }
 
     val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)

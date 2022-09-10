@@ -196,7 +196,8 @@ final class EpollAsyncSocketChannel private (fd: Int)
           addrinfo
         )
       if (rtn != 0) {
-        handler.failed(new IOException(s"getaddrinfo: $rtn"), attachment)
+        val gaiMsg = SocketHelpers.getGaiErrorMessage(rtn, addr)
+        handler.failed(new IOException(s"getaddrinfo: ${gaiMsg}"), attachment)
         false
       } else true
     }
