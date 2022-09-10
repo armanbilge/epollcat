@@ -51,7 +51,7 @@ Sorry, nope :)
 
 First of all, I think a [libuv](https://libuv.org/)-based runtime is a great idea, particularly due to the cross-platform compatibility and also because it provides async DNS and file system APIs (via its own blocking pool). If anyone wants to work on this I would be very happy to help you get started!
 
-I thought long and hard about this and where I should best put my time and energy. Here is some of my reasoning.
+I thought a lot about this and where I should best put my time and energy. Here is some of my reasoning.
 
 1. Actually, libuv is a bit too high-level for our needs: it essentially offers an entire runtime, including a scheduler and a blocking pool. Ideally we would use only its cross-platform I/O polling capability within our own Cats Effect runtime, but this does not seem to be exposed unfortunately.
 
