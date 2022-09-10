@@ -114,29 +114,9 @@ private[ch] object SocketHelpers {
     new InetSocketAddress(inetAddr, port)
   }
 
-  /* Return text translation of getaddrinfo (gai) error code.
-   * Since this is predominantly executed whilst on an error path,
-   * be particularly picky about checking for nulls. Prior code on the path
-   * should have reported or thrown NPE on nulls. But here we are, probably
-   * on an error path with an indeterminate world.
-   *
-   * The extra 'address' and 'port' information is given to possibly
-   * provide clues to reduce defect removal cycles.
-   */
-  def getGaiErrorMessage(gaiErrorCode: CInt, addr: InetSocketAddress): String = {
-    java.util.Objects.requireNonNull(addr, "unexpected null InetSocketAddress")
-
-    val gaiMsg = fromCString(posix.netdb.gai_strerror(gaiErrorCode))
-
-    val adr = {
-      val aga = addr.getAddress()
-      if (aga == null) "null" // No requireNonNull, salvage port info
-      else aga.getHostAddress()
-    }
-
-    val port = addr.getPort.toString
-
-    s"${gaiMsg} address: ${adr}  port: ${port}"
+  // Return text translation of getaddrinfo (gai) error code.
+  def getGaiErrorMessage(gaiErrorCode: CInt): String = {
+    s"${fromCString(posix.netdb.gai_strerror(gaiErrorCode))}"
   }
 
 }
