@@ -21,11 +21,36 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import scala.scalanative.libc.errno
+import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.posix
 import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 
 private[ch] object SocketHelpers {
+
+  def mkNonBlocking(): CInt = {
+    val SOCK_NONBLOCK =
+      if (LinktimeInfo.isLinux)
+        socket.SOCK_NONBLOCK
+      else 0
+
+    val fd = posix
+      .sys
+      .socket
+      .socket(posix.sys.socket.AF_INET, posix.sys.socket.SOCK_STREAM | SOCK_NONBLOCK, 0)
+
+    if (fd == -1)
+      throw new RuntimeException(s"socket: ${errno.errno}")
+
+    if (!LinktimeInfo.isLinux) setNonBlocking(fd)
+
+    fd
+  }
+
+  def setNonBlocking(fd: CInt): Unit =
+    if (posix.fcntl.fcntl(fd, posix.fcntl.F_SETFL, posix.fcntl.O_NONBLOCK) != 0)
+      throw new IOException(s"fcntl: ${errno.errno}")
+    else ()
 
   def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()
