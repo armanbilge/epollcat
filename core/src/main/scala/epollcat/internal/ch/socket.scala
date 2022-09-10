@@ -18,14 +18,14 @@ package epollcat.internal.ch
 
 import scala.annotation.nowarn
 import scala.scalanative.unsafe._
+import scala.scalanative.posix.sys.socket._
 
 @extern
 @nowarn
 private[ch] object socket {
   final val SOCK_NONBLOCK = 2048 // only in Linux and FreeBSD, but not macOS
 
-  def accept(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte]): CInt = extern
-
   // only supported on Linux and FreeBSD, but not macOS
-  def accept4(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[Byte], flags: CInt): CInt = extern
+  def accept4(sockfd: CInt, addr: Ptr[sockaddr], addrlen: Ptr[socklen_t], flags: CInt): CInt =
+    extern
 }

@@ -22,7 +22,6 @@ import epollcat.unsafe.EventPollingExecutorScheduler
 
 import java.io.IOException
 import java.net.ConnectException
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
@@ -38,11 +37,10 @@ import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
-import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 
-final class EpollAsyncSocketChannel private (fd: Int)
+final class EpollAsyncSocketChannel private (fd: Int, private var remoteAddress: SocketAddress)
     extends AsynchronousSocketChannel(null)
     with EventNotificationCallback {
 
@@ -89,22 +87,7 @@ final class EpollAsyncSocketChannel private (fd: Int)
     this
   }
 
-  def getRemoteAddress(): SocketAddress = {
-    val addr = stackalloc[posix.netinet.in.sockaddr_in]()
-    val len = stackalloc[posix.sys.socket.socklen_t]()
-    !len = sizeof[posix.sys.socket.sockaddr].toUInt
-    if (posix
-        .sys
-        .socket
-        .getpeername(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], len) == -1)
-      throw new IOException(s"getpeername: ${errno.errno}")
-    val port = posix.arpa.inet.htons(addr.sin_port).toInt
-    val addrBytes = addr.sin_addr.at1.asInstanceOf[Ptr[Byte]]
-    val inetAddr = InetAddress.getByAddress(
-      Array(addrBytes(0), addrBytes(1), addrBytes(2), addrBytes(3))
-    )
-    new InetSocketAddress(inetAddr, port)
-  }
+  def getRemoteAddress(): SocketAddress = remoteAddress
 
   @stub
   def read[A](
@@ -233,6 +216,7 @@ final class EpollAsyncSocketChannel private (fd: Int)
         return handler.failed(new IOException(s"getsockopt: ${errno.errno}"), attachment)
 
       if (!optval == 0) {
+        remoteAddress = remote
         handler.completed(null, attachment)
       } else {
         val ex = !optval match {
@@ -376,13 +360,13 @@ object EpollAsyncSocketChannel {
 
   def open(): EpollAsyncSocketChannel = {
     val fd = SocketHelpers.mkNonBlocking()
-    open(fd)
+    apply(fd, null)
   }
 
-  private[ch] def open(fd: CInt): EpollAsyncSocketChannel = {
+  private[ch] def apply(fd: CInt, remoteAddress: SocketAddress): EpollAsyncSocketChannel = {
     EpollRuntime.global.compute match {
       case epoll: EventPollingExecutorScheduler =>
-        val ch = new EpollAsyncSocketChannel(fd)
+        val ch = new EpollAsyncSocketChannel(fd, remoteAddress)
         ch.unmonitor = epoll.monitor(fd, reads = true, writes = true)(ch)
         ch
       case _ =>

@@ -106,6 +106,12 @@ private[ch] object SocketHelpers {
         .socket
         .getsockname(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], len) == -1)
       throw new IOException(s"getsockname: ${errno.errno}")
+    toInetSocketAddress(addr)
+  }
+
+  def toInetSocketAddress(
+      addr: Ptr[posix.netinet.in.sockaddr_in]
+  ): InetSocketAddress = {
     val port = posix.arpa.inet.htons(addr.sin_port).toInt
     val addrBytes = addr.sin_addr.at1.asInstanceOf[Ptr[Byte]]
     val inetAddr = InetAddress.getByAddress(
