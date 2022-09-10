@@ -40,8 +40,10 @@ import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 
-final class EpollAsyncSocketChannel private (fd: Int, private var remoteAddress: SocketAddress)
-    extends AsynchronousSocketChannel(null)
+final class EpollAsyncSocketChannel private (
+    fd: Int,
+    private[this] var remoteAddress: SocketAddress
+) extends AsynchronousSocketChannel(null)
     with EventNotificationCallback {
 
   private var unmonitor: Runnable = null
