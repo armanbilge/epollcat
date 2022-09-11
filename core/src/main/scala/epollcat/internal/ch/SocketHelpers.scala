@@ -114,4 +114,9 @@ private[ch] object SocketHelpers {
     new InetSocketAddress(inetAddr, port)
   }
 
+  // Return text translation of getaddrinfo (gai) error code.
+  def getGaiErrorMessage(gaiErrorCode: CInt): String = {
+    fromCString(posix.netdb.gai_strerror(gaiErrorCode))
+  }
+
 }

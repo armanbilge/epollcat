@@ -31,6 +31,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
+import java.nio.channels.UnsupportedAddressTypeException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
@@ -195,10 +196,18 @@ final class EpollAsyncSocketChannel private (fd: Int)
           hints,
           addrinfo
         )
-      if (rtn != 0) {
-        handler.failed(new IOException(s"getaddrinfo: $rtn"), attachment)
+      if (rtn == 0) {
+        true
+      } else {
+        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
+          new UnsupportedAddressTypeException()
+        } else {
+          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
+          new IOException(msg)
+        }
+        handler.failed(ex, attachment)
         false
-      } else true
+      }
     }
 
     if (!continue)

@@ -29,6 +29,7 @@ import java.net.StandardSocketOptions
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
+import java.nio.channels.UnsupportedAddressTypeException
 import java.util.concurrent.Future
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
@@ -85,15 +86,37 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           hints,
           addrinfo
         )
-      if (rtn != 0)
-        throw new IOException(s"getaddrinfo: ${rtn}")
+
+      if (rtn != 0) {
+        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
+          new UnsupportedAddressTypeException()
+        } else {
+          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
+          new IOException(msg)
+        }
+
+        throw ex
+      }
     }
 
     val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
     posix.netdb.freeaddrinfo(!addrinfo)
+
+    // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
+    val EADDRNOTAVAIL =
+      if (LinktimeInfo.isLinux) 99
+      else if (LinktimeInfo.isMac) 49
+      else Int.MaxValue // punt, will never match an errno.
+
     if (bindRet == -1) errno.errno match {
       case e if e == posix.errno.EADDRINUSE =>
         throw new BindException("Address already in use")
+      case e if e == EADDRNOTAVAIL =>
+        // Whis code may have to change when support for a new OS is added.
+        if (LinktimeInfo.isMac)
+          throw new BindException("Can't assign requested address")
+        else // Linux & a bet that an unknownd OS uses good grammer.
+          throw new BindException("Cannot assign requested address")
       case other => throw new IOException(s"bind: $other")
     }
 
