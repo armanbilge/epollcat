@@ -101,12 +101,22 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
 
     val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
     posix.netdb.freeaddrinfo(!addrinfo)
+
+    // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
+    val EADDRNOTAVAIL =
+      if (LinktimeInfo.isLinux) 99
+      else if (LinktimeInfo.isMac) 49
+      else Int.MaxValue // punt, will never match an errno.
+
     if (bindRet == -1) errno.errno match {
       case e if e == posix.errno.EADDRINUSE =>
         throw new BindException("Address already in use")
-      case e if e == 99 =>
-        // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
-        throw new BindException("Cannot assign requested address")
+      case e if e == EADDRNOTAVAIL =>
+        // Whis code may have to change when support for a new OS is added.
+        if (LinktimeInfo.isMac)
+          throw new BindException("Can't assign requested address")
+        else // Linux & a bet that an unknownd OS uses good grammer.
+          throw new BindException("Cannot assign requested address")
       case other => throw new IOException(s"bind: $other")
     }
 
