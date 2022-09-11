@@ -17,95 +17,21 @@
 package epollcat
 
 import cats.effect.IO
-import cats.effect.kernel.Resource
 import cats.syntax.all._
 
 import java.net.BindException
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.SocketAddress
-import java.net.SocketOption
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousServerSocketChannel
-import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
-import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
 import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
 
   override def munitIOTimeout = 20.seconds
-
-  def toHandler[A](cb: Either[Throwable, A] => Unit): CompletionHandler[A, Any] =
-    new CompletionHandler[A, Any] {
-      def completed(result: A, attachment: Any): Unit = cb(Right(result))
-      def failed(exc: Throwable, attachment: Any): Unit = cb(Left(exc))
-    }
-
-  final class IOSocketChannel(ch: AsynchronousSocketChannel) {
-    def connect(remote: SocketAddress): IO[Unit] =
-      IO.async_[Void](cb => ch.connect(remote, null, toHandler(cb))).void
-
-    def read(dest: ByteBuffer): IO[Int] =
-      IO.async_[Integer](cb => ch.read(dest, null, toHandler(cb))).map(_.intValue)
-
-    def write(src: ByteBuffer): IO[Int] =
-      IO.async_[Integer](cb => ch.write(src, null, toHandler(cb))).map(_.intValue)
-
-    def shutdownInput: IO[Unit] = IO(ch.shutdownInput()).void
-
-    def shutdownOutput: IO[Unit] = IO(ch.shutdownOutput()).void
-
-    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
-      IO(ch.setOption(option, value)).void
-
-    def localAddress: IO[SocketAddress] =
-      IO(ch.getLocalAddress())
-
-    def remoteAddress: IO[SocketAddress] =
-      IO(ch.getRemoteAddress())
-  }
-
-  object IOSocketChannel {
-    def open: Resource[IO, IOSocketChannel] =
-      Resource
-        .fromAutoCloseable(IO(AsynchronousSocketChannel.open()))
-        .map(new IOSocketChannel(_))
-  }
-
-  final class IOServerSocketChannel(ch: AsynchronousServerSocketChannel) {
-    def bind(local: SocketAddress): IO[Unit] =
-      IO(ch.bind(local)).void
-
-    def accept: Resource[IO, IOSocketChannel] =
-      Resource
-        .makeFull[IO, AsynchronousSocketChannel] { poll =>
-          poll {
-            IO.async { cb =>
-              IO(ch.accept(null, toHandler(cb)))
-                // it seems the only way to cancel accept is to close the socket :(
-                .as(Some(IO(ch.close())))
-            }
-          }
-        }(ch => IO(ch.close()))
-        .map(new IOSocketChannel(_))
-
-    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
-      IO(ch.setOption(option, value)).void
-
-    def localAddress: IO[SocketAddress] =
-      IO(ch.getLocalAddress())
-  }
-
-  object IOServerSocketChannel {
-    def open: Resource[IO, IOServerSocketChannel] =
-      Resource
-        .fromAutoCloseable(IO(AsynchronousServerSocketChannel.open()))
-        .map(new IOServerSocketChannel(_))
-  }
 
   def decode(bb: ByteBuffer): String =
     StandardCharsets.UTF_8.decode(bb).toString()

@@ -35,9 +35,25 @@ object EpollRuntime {
     EventPollingExecutorScheduler(64)
   }
 
-  def global: IORuntime = {
-    IORuntime.installGlobal(EpollRuntime())
-    IORuntime.global
+  private[this] var _global: IORuntime = null
+
+  private[epollcat] def installGlobal(global: => IORuntime): Boolean = {
+    if (_global == null) {
+      _global = global
+      true
+    } else {
+      false
+    }
+  }
+
+  lazy val global: IORuntime = {
+    if (_global == null) {
+      installGlobal {
+        EpollRuntime()
+      }
+    }
+
+    _global
   }
 
 }
