@@ -105,6 +105,10 @@ jobs:
         if: matrix.java == 'temurin@17'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' doc
 
+      - name: Run the example
+        if: matrix.project == 'rootNative'
+        run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' example/run
+
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
         run: mkdir -p target .js/target .jvm/target .native/target tests/jvm/target core/target example/target tests/native/target project/target

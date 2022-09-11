@@ -18,6 +18,14 @@ ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
 
+ThisBuild / githubWorkflowBuild ++= Seq(
+  WorkflowStep.Sbt(
+    List("example/run"),
+    name = Some("Run the example"),
+    cond = Some("matrix.project == 'rootNative'")
+  )
+)
+
 val catsEffectVersion = "3.3.14-1-5d11fe9"
 val munitCEVersion = "2.0-5e03bfc"
 
