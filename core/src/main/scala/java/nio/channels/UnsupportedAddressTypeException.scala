@@ -16,4 +16,4 @@
 
 package java.nio.channels
 
-class  UnsupportedAddressTypeException extends IllegalArgumentException
+class UnsupportedAddressTypeException extends IllegalArgumentException
