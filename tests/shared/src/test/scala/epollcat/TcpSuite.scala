@@ -164,13 +164,25 @@ class TcpSuite extends EpollcatSuite {
       .interceptMessage[ConnectException]("Connection refused")
   }
 
-  test("BindException") {
+  test("BindException - EADDRINUSE") {
     IOServerSocketChannel
       .open
       .evalTap(_.bind(new InetSocketAddress(0)))
       .evalMap(_.localAddress)
       .use(addr => IOServerSocketChannel.open.use(_.bind(addr)))
       .interceptMessage[BindException]("Address already in use")
+  }
+
+  test("BindException - EADDRNOTAVAIL") {
+    // 240.0.0.1 is in reserved range 240.0.0.0/24.  Used to elicit Exception.
+    IOServerSocketChannel
+      .open
+      .use { ch =>
+        for {
+          _ <- ch.bind(new InetSocketAddress("240.0.0.1", 0))
+        } yield ()
+      }
+      .interceptMessage[BindException]("Cannot assign requested address")
   }
 
   test("ClosedChannelException") {
