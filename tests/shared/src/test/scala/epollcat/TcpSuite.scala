@@ -182,7 +182,15 @@ class TcpSuite extends EpollcatSuite {
           _ <- ch.bind(new InetSocketAddress("240.0.0.1", 0))
         } yield ()
       }
-      .interceptMessage[BindException]("Cannot assign requested address")
+      .interceptMessage[BindException] {
+        val osName = System.getProperty("os.name", "unknown").toLowerCase
+        if (osName.startsWith("linux"))
+          "Cannot assign requested address"
+        else if (osName.startsWith("mac"))
+          "Can't assign requested address"
+        else
+          "unknown operating system"
+      }
   }
 
   test("ClosedChannelException") {
