@@ -29,7 +29,7 @@ There are a couple options:
 ### Should I add this as a dependency to my Scala Native library?
 
 I do not recommend it. This project is intended for only applications, it is too opinionated for libraries to force it onto their users:
-1. It currently only supports Linux.
+1. It supports only Linux and macOS.
 2. It partially implements `java.*` APIs which it does not hold the "namespace rights" to, but these implementations are not canonical nor do they intend to be.
 3. Your user may want to use a different runtime in their application (for example the `CurlRuntime` from [http4s-curl](https://github.com/http4s/http4s-curl/)). It is not possible to mix runtimes; expect bad things to happen.
 
