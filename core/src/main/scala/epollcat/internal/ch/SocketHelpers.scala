@@ -116,7 +116,7 @@ private[ch] object SocketHelpers {
 
   // Return text translation of getaddrinfo (gai) error code.
   def getGaiErrorMessage(gaiErrorCode: CInt): String = {
-    s"${fromCString(posix.netdb.gai_strerror(gaiErrorCode))}"
+    fromCString(posix.netdb.gai_strerror(gaiErrorCode))
   }
 
 }

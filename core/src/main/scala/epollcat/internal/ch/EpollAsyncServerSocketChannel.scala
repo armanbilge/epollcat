@@ -29,6 +29,7 @@ import java.net.StandardSocketOptions
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
+import java.nio.channels.UnsupportedAddressTypeException
 import java.util.concurrent.Future
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
@@ -85,9 +86,16 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           hints,
           addrinfo
         )
+
       if (rtn != 0) {
-        val gaiMsg = SocketHelpers.getGaiErrorMessage(rtn)
-        throw new IOException(s"getaddrinfo: ${gaiMsg}")
+        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
+          new UnsupportedAddressTypeException()
+        } else {
+          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
+          new IOException(msg)
+        }
+
+        throw ex
       }
     }
 
@@ -96,6 +104,9 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
     if (bindRet == -1) errno.errno match {
       case e if e == posix.errno.EADDRINUSE =>
         throw new BindException("Address already in use")
+      case e if e == 99 =>
+        // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
+        throw new BindException("Cannot assign requested address")
       case other => throw new IOException(s"bind: $other")
     }
 
