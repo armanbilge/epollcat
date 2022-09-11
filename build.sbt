@@ -21,7 +21,7 @@ ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
 val catsEffectVersion = "3.3.14-1-5d11fe9"
 val munitCEVersion = "2.0-5e03bfc"
 
-lazy val root = tlCrossRootProject.aggregate(core, tests)
+lazy val root = tlCrossRootProject.aggregate(core, tests, example)
 
 lazy val core = project
   .in(file("core"))
@@ -39,6 +39,12 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .nativeConfigure(_.dependsOn(core))
   .settings(
     libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-effect" % catsEffectVersion,
       "org.typelevel" %%% "munit-cats-effect" % munitCEVersion % Test
     )
   )
+
+lazy val example = project
+  .in(file("example"))
+  .enablePlugins(ScalaNativePlugin, NoPublishPlugin)
+  .dependsOn(tests.native)
