@@ -22,7 +22,20 @@ import epollcat.unsafe.EpollRuntime
 
 trait EpollApp extends IOApp {
 
-  override final lazy val runtime: IORuntime = EpollRuntime(runtimeConfig)
+  override final lazy val runtime: IORuntime = {
+    val installed = EpollRuntime installGlobal {
+      EpollRuntime(runtimeConfig)
+    }
+
+    if (!installed) {
+      System
+        .err
+        .println(
+          "WARNING: Epollcat global runtime already initialized; custom configurations will be ignored")
+    }
+
+    EpollRuntime.global
+  }
 
 }
 
