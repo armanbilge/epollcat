@@ -28,6 +28,9 @@ import scala.scalanative.unsafe._
 
 private[ch] object SocketHelpers {
 
+  lazy val preferIPv4Stack =
+    java.lang.Boolean.parseBoolean(System.getProperty("java.net.preferIPv4Stack", "false"))
+
   def mkNonBlocking(): CInt = {
     val SOCK_NONBLOCK =
       if (LinktimeInfo.isLinux)
