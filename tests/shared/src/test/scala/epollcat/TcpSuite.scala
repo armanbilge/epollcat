@@ -68,7 +68,8 @@ class TcpSuite extends EpollcatSuite {
 }
    */
 
-  test("connect localhost LeeT".only) {
+//  test("connect localhost LeeT".only) {
+  test("connect localhost LeeT") {
     val localhost = new InetSocketAddress(InetAddress.getByName("localhost"), 8888)
     val `127.0.0.1` = new InetSocketAddress("127.0.0.1", 8888)
     val lh = InetAddress.getByName("localhost")
