@@ -236,4 +236,21 @@ class TcpSuite extends EpollcatSuite {
       .timeoutTo(100.millis, IO.unit)
   }
 
+  test("connect localhost") {
+    val localhost = new InetSocketAddress(InetAddress.getByName("localhost"), 8888)
+    val `127.0.0.1` = new InetSocketAddress("127.0.0.1", 8888)
+    println(localhost)
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 8888)))
+      .surround {
+        for {
+          result1 <- IOSocketChannel.open.use(_.connect(localhost)).attempt
+          _ <- IO.println(result1)
+          result2 <- IOSocketChannel.open.use(_.connect(`127.0.0.1`)).attempt
+          _ <- IO.println(result2)
+        } yield ()
+      }
+  }
+
 }
