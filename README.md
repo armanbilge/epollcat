@@ -23,7 +23,7 @@ There are a couple options:
 
 2. For test frameworks and other unusual situations, you may need to use `EpollRuntime.global`. For example to use with [munit-cats-effect](https://github.com/typelevel/munit-cats-effect):
 ```scala
- override lazy val munitIoRuntime = EpollRuntime.global
+ override def munitIORuntime = EpollRuntime.global
 ```
 
 ### Should I add this as a dependency to my Scala Native library?
