@@ -108,6 +108,8 @@ class TcpSuite extends EpollcatSuite {
           server.localAddress.flatMap(clientCh.connect(_)) *>
             server.accept.use { serverCh =>
               for {
+                _ <- serverCh.shutdownOutput
+                _ <- clientCh.shutdownOutput
                 serverLocal <- serverCh.localAddress
                 serverRemote <- serverCh.remoteAddress
                 clientLocal <- clientCh.localAddress
