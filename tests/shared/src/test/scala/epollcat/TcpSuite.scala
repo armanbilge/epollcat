@@ -80,6 +80,7 @@ class TcpSuite extends EpollcatSuite {
 
         val client = for {
           serverAddr <- serverCh.localAddress
+          _ <- IO.println(serverAddr)
           _ <- clientCh.connect(serverAddr)
           clientLocalAddr <- clientCh.localAddress
           _ <- IO(
