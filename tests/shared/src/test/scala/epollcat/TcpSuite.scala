@@ -36,6 +36,80 @@ class TcpSuite extends EpollcatSuite {
   def decode(bb: ByteBuffer): String =
     StandardCharsets.UTF_8.decode(bb).toString()
 
+/*
+  test("connect localhost".only) {
+    val address = new InetSocketAddress(InetAddress.getByName("localhost"), 0)
+    IOSocketChannel.open.use { ch =>
+      for {
+        _ <- ch.connect(address)
+      } yield ()
+    }
+  }
+ */
+
+/*
+  test("connect localhost LeeT".only) {
+  val localhost = new InetSocketAddress(InetAddress.getByName("localhost"), 8888)
+  val `127.0.0.1` = new InetSocketAddress("127.0.0.1", 8888)
+
+  IOServerSocketChannel
+    .open
+    .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 8888)))
+    .surround {
+      for {
+        result1 <- IOSocketChannel.open.use(_.connect(localhost)).attempt
+        _ <- IO.println("\n")
+        _ <- IO.println(result1)
+        result2 <- IOSocketChannel.open.use(_.connect(`127.0.0.1`)).attempt
+        _ <- IO.println("\n")
+        _ <- IO.println(result2)
+      } yield ()
+    }
+}
+*/
+
+  test("connect localhost LeeT".only) {
+  val localhost = new InetSocketAddress(InetAddress.getByName("localhost"), 8888)
+  val `127.0.0.1` = new InetSocketAddress("127.0.0.1", 8888)
+  val lh = InetAddress.getByName("localhost")
+
+
+  IOServerSocketChannel
+    .open
+    .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 8888)))
+    .surround {
+      for {
+        _ <- IO.println("\n")
+        _ <- IO.println(
+          s"InetAddress.getByName(localhost) is: |${lh}|\n")
+        result1 <- IOSocketChannel.open.use(_.connect(localhost)).attempt
+        _ <- IO.println("\n")
+        _ <- IO.println(result1)
+        result2 <- IOSocketChannel.open.use(_.connect(`127.0.0.1`)).attempt
+        _ <- IO.println("\n")
+        _ <- IO.println(result2)
+      } yield ()
+    }
+}
+
+  test("connect localhost") {
+  val localhost = new InetSocketAddress(InetAddress.getByName("localhost"), 8888)
+  val `127.0.0.1` = new InetSocketAddress("127.0.0.1", 8888)
+
+  IOServerSocketChannel
+    .open
+    .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 8888)))
+    .surround {
+      for {
+        result1 <- IOSocketChannel.open.use(_.connect(localhost)).attempt
+        _ <- IO.println(result1)
+        result2 <- IOSocketChannel.open.use(_.connect(`127.0.0.1`)).attempt
+        _ <- IO.println(result2)
+      } yield ()
+    }
+}
+
+
   test("HTTP echo") {
     val address = new InetSocketAddress(InetAddress.getByName("postman-echo.com"), 80)
     val bytes =
@@ -102,7 +176,8 @@ class TcpSuite extends EpollcatSuite {
   }
 
   test("local and remote addresses") {
-    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("127.0.0.1", 0))).use {
+    IOServerSocketChannel.open.evalTap(_.bind(
+     new InetSocketAddress("localhost", 0))).use {
       server =>
         IOSocketChannel.open.use { clientCh =>
           server.localAddress.flatMap(clientCh.connect(_)) *>
