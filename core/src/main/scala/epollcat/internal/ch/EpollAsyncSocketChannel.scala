@@ -30,7 +30,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
-import java.nio.channels.UnsupportedAddressTypeException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
@@ -165,41 +164,15 @@ final class EpollAsyncSocketChannel private (
       attachment: A,
       handler: CompletionHandler[Void, _ >: A]
   ): Unit = {
-    val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
-
-    val continue = Zone { implicit z =>
-      val addr = remote.asInstanceOf[InetSocketAddress]
-      val hints = stackalloc[posix.netdb.addrinfo]()
-      hints.ai_family = posix.sys.socket.AF_INET
-      hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
-      hints.ai_socktype = posix.sys.socket.SOCK_STREAM
-      val rtn = posix
-        .netdb
-        .getaddrinfo(
-          toCString(addr.getAddress().getHostAddress()),
-          toCString(addr.getPort.toString),
-          hints,
-          addrinfo
-        )
-      if (rtn == 0) {
-        true
-      } else {
-        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
-          new UnsupportedAddressTypeException()
-        } else {
-          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
-          new IOException(msg)
-        }
-        handler.failed(ex, attachment)
-        false
-      }
+    val addrinfo = SocketHelpers.toAddrinfo(remote.asInstanceOf[InetSocketAddress]) match {
+      case Left(ex) =>
+        return handler.failed(ex, attachment)
+      case Right(addrinfo) => addrinfo
     }
 
-    if (!continue)
-      return ()
+    val conRet = posix.sys.socket.connect(fd, addrinfo.ai_addr, addrinfo.ai_addrlen)
+    posix.netdb.freeaddrinfo(addrinfo)
 
-    val conRet = posix.sys.socket.connect(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
-    posix.netdb.freeaddrinfo(!addrinfo)
     if (conRet == -1 && errno.errno != posix.errno.EINPROGRESS) {
       val ex = errno.errno match {
         case e if e == posix.errno.ECONNREFUSED =>
