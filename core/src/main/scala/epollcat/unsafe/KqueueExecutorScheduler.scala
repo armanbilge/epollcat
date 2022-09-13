@@ -33,8 +33,9 @@ import eventImplicits._
 
 private[unsafe] final class KqueueExecutorScheduler(
     private[this] val kqfd: Int,
+    pollEvery: Int,
     private[this] val maxEvents: Int)
-    extends EventPollingExecutorScheduler {
+    extends EventPollingExecutorScheduler(pollEvery) {
 
   private[this] val changes: ArrayDeque[EvAdd] = new ArrayDeque
   private[this] val callbacks: LongMap[EventNotificationCallback] = new LongMap
@@ -153,11 +154,11 @@ private[unsafe] final class KqueueExecutorScheduler(
 
 private[unsafe] object KqueueExecutorScheduler {
 
-  def apply(maxEvents: Int): (KqueueExecutorScheduler, () => Unit) = {
+  def apply(pollEvery: Int, maxEvents: Int): (KqueueExecutorScheduler, () => Unit) = {
     val kqfd = kqueue()
     if (kqfd == -1)
       throw new RuntimeException(s"kqfd: ${errno.errno}")
-    val kqec = new KqueueExecutorScheduler(kqfd, maxEvents)
+    val kqec = new KqueueExecutorScheduler(kqfd, pollEvery, maxEvents)
     val shutdown = () => {
       if (unistd.close(kqfd) != 0) throw new RuntimeException(s"close: ${errno.errno}")
     }
