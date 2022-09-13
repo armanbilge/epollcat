@@ -121,7 +121,7 @@ private[ch] object SocketHelpers {
   def toInet4SocketAddress(
       addr: Ptr[posix.netinet.in.sockaddr_in]
   ): InetSocketAddress = {
-    val port = posix.arpa.inet.htons(addr.sin_port).toInt
+    val port = posix.arpa.inet.ntohs(addr.sin_port).toInt
     val addrBytes = addr.sin_addr.at1.asInstanceOf[Ptr[Byte]]
     val inetAddr = InetAddress.getByAddress(
       Array(addrBytes(0), addrBytes(1), addrBytes(2), addrBytes(3))
@@ -132,7 +132,7 @@ private[ch] object SocketHelpers {
   def toInet6SocketAddress(
       addr: Ptr[posix.netinet.in.sockaddr_in6]
   ): InetSocketAddress = {
-    val port = posix.arpa.inet.htons(addr.sin6_port).toInt
+    val port = posix.arpa.inet.ntohs(addr.sin6_port).toInt
     val addrBytes = addr.sin6_addr.at1.asInstanceOf[Ptr[Byte]]
     val inetAddr = InetAddress.getByAddress {
       val addr = new Array[Byte](16)
