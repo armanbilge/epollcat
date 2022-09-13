@@ -133,14 +133,10 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val sz =
-        if (SocketHelpers.preferIPv4Stack)
-          sizeof[posix.netinet.in.sockaddr_in]
-        else
-          sizeof[posix.netinet.in.sockaddr_in6]
-      val addr = stackalloc[Byte](sz)
+      val addr = // allocate enough for an IPv6
+        stackalloc[posix.netinet.in.sockaddr_in6]().asInstanceOf[Ptr[posix.sys.socket.sockaddr]]
       val addrlen = stackalloc[posix.sys.socket.socklen_t]()
-      !addrlen = sz.toUInt
+      !addrlen = sizeof[posix.netinet.in.sockaddr_in6].toUInt
       val clientFd =
         if (LinktimeInfo.isLinux)
           socket.accept4(
@@ -150,10 +146,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
             SOCK_NONBLOCK
           )
         else {
-          posix
-            .sys
-            .socket
-            .accept(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], addrlen)
+          posix.sys.socket.accept(fd, addr, addrlen)
         }
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
