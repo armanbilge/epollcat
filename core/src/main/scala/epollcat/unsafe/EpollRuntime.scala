@@ -32,7 +32,7 @@ object EpollRuntime {
   }
 
   def defaultExecutionContextScheduler(): (ExecutionContext with Scheduler, () => Unit) = {
-    EventPollingExecutorScheduler(64)
+    EventPollingExecutorScheduler(64, 64)
   }
 
   private[this] var _global: IORuntime = null

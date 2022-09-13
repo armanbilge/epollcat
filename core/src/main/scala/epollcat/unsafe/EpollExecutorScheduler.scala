@@ -31,8 +31,9 @@ import epollImplicits._
 
 private[unsafe] final class EpollExecutorScheduler private (
     private[this] val epfd: Int,
+    pollEvery: Int,
     private[this] val maxEvents: Int)
-    extends EventPollingExecutorScheduler {
+    extends EventPollingExecutorScheduler(pollEvery) {
 
   private[this] val callbacks: Set[EventNotificationCallback] =
     Collections.newSetFromMap(new IdentityHashMap)
@@ -96,11 +97,11 @@ private[unsafe] final class EpollExecutorScheduler private (
 
 private[unsafe] object EpollExecutorScheduler {
 
-  def apply(maxEvents: Int): (EpollExecutorScheduler, () => Unit) = {
+  def apply(pollEvery: Int, maxEvents: Int): (EpollExecutorScheduler, () => Unit) = {
     val epfd = epoll_create1(0)
     if (epfd == -1)
       throw new RuntimeException(s"epoll_create1: ${errno.errno}")
-    val epoll = new EpollExecutorScheduler(epfd, maxEvents)
+    val epoll = new EpollExecutorScheduler(epfd, pollEvery, maxEvents)
     val shutdown = () => {
       if (unistd.close(epfd) != 0) throw new RuntimeException(s"close: ${errno.errno}")
     }

@@ -24,8 +24,8 @@ import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 
-private[epollcat] abstract class EventPollingExecutorScheduler
-    extends PollingExecutorScheduler {
+private[epollcat] abstract class EventPollingExecutorScheduler(pollEvery: Int)
+    extends PollingExecutorScheduler(pollEvery) {
 
   def monitor(fd: Int, reads: Boolean, writes: Boolean)(cb: EventNotificationCallback): Runnable
 
@@ -45,11 +45,11 @@ private[epollcat] object EventNotificationCallback {
 
 private[epollcat] object EventPollingExecutorScheduler {
 
-  def apply(maxEvents: Int): (EventPollingExecutorScheduler, () => Unit) =
+  def apply(pollEvery: Int, maxEvents: Int): (EventPollingExecutorScheduler, () => Unit) =
     if (LinktimeInfo.isLinux)
-      EpollExecutorScheduler(maxEvents)
+      EpollExecutorScheduler(pollEvery, maxEvents)
     else if (LinktimeInfo.isMac)
-      KqueueExecutorScheduler(maxEvents)
+      KqueueExecutorScheduler(pollEvery, maxEvents)
     else
       throw new UnsupportedPlatformError
 
