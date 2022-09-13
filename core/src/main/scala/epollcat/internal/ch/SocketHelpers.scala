@@ -20,9 +20,11 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
+import java.nio.channels.UnsupportedAddressTypeException
 import scala.scalanative.libc.errno
 import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.posix
+import scala.scalanative.posix.netdbOps._
 import scala.scalanative.posix.netinet.inOps._
 import scala.scalanative.unsafe._
 
@@ -118,6 +120,34 @@ private[ch] object SocketHelpers {
       Array(addrBytes(0), addrBytes(1), addrBytes(2), addrBytes(3))
     )
     new InetSocketAddress(inetAddr, port)
+  }
+
+  def toAddrinfo(addr: InetSocketAddress): Either[Throwable, Ptr[posix.netdb.addrinfo]] = Zone {
+    implicit z =>
+      val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
+      val hints = stackalloc[posix.netdb.addrinfo]()
+      hints.ai_family = posix.sys.socket.AF_INET
+      hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
+      hints.ai_socktype = posix.sys.socket.SOCK_STREAM
+      val rtn = posix
+        .netdb
+        .getaddrinfo(
+          toCString(addr.getAddress().getHostAddress()),
+          toCString(addr.getPort.toString),
+          hints,
+          addrinfo
+        )
+      if (rtn == 0) {
+        Right(!addrinfo)
+      } else {
+        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
+          new UnsupportedAddressTypeException()
+        } else {
+          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
+          new IOException(msg)
+        }
+        Left(ex)
+      }
   }
 
   // Return text translation of getaddrinfo (gai) error code.

@@ -29,7 +29,6 @@ import java.net.StandardSocketOptions
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
-import java.nio.channels.UnsupportedAddressTypeException
 import java.util.concurrent.Future
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
@@ -71,36 +70,13 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   def getOption[T](name: SocketOption[T]): T = ???
 
   def bind(local: SocketAddress, backlog: Int): AsynchronousServerSocketChannel = {
-    val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
-    Zone { implicit z =>
-      val addr = local.asInstanceOf[InetSocketAddress]
-      val hints = stackalloc[posix.netdb.addrinfo]()
-      hints.ai_family = posix.sys.socket.AF_INET
-      hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
-      hints.ai_socktype = posix.sys.socket.SOCK_STREAM
-      val rtn = posix
-        .netdb
-        .getaddrinfo(
-          toCString(addr.getAddress().getHostAddress()),
-          toCString(addr.getPort.toString),
-          hints,
-          addrinfo
-        )
-
-      if (rtn != 0) {
-        val ex = if (rtn == posix.netdb.EAI_FAMILY) {
-          new UnsupportedAddressTypeException()
-        } else {
-          val msg = s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
-          new IOException(msg)
-        }
-
-        throw ex
-      }
+    val addrinfo = SocketHelpers.toAddrinfo(local.asInstanceOf[InetSocketAddress]) match {
+      case Left(ex) => throw ex
+      case Right(addrinfo) => addrinfo
     }
 
-    val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
-    posix.netdb.freeaddrinfo(!addrinfo)
+    val bindRet = posix.sys.socket.bind(fd, addrinfo.ai_addr, addrinfo.ai_addrlen)
+    posix.netdb.freeaddrinfo(addrinfo)
 
     // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
     val EADDRNOTAVAIL =
