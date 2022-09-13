@@ -106,18 +106,11 @@ private[ch] object SocketHelpers {
   }
 
   def getLocalAddress(fd: CInt): SocketAddress = {
-    val sz =
-      if (preferIPv4Stack)
-        sizeof[posix.netinet.in.sockaddr_in]
-      else
-        sizeof[posix.netinet.in.sockaddr_in6]
-    val addr = stackalloc[Byte](sz)
+    val addr = // allocate enough for an IPv6
+      stackalloc[posix.netinet.in.sockaddr_in6]().asInstanceOf[Ptr[posix.sys.socket.sockaddr]]
     val len = stackalloc[posix.sys.socket.socklen_t]()
-    !len = sz.toUInt
-    if (posix
-        .sys
-        .socket
-        .getsockname(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], len) == -1)
+    !len = sizeof[posix.netinet.in.sockaddr_in6].toUInt
+    if (posix.sys.socket.getsockname(fd, addr, len) == -1)
       throw new IOException(s"getsockname: ${errno.errno}")
     if (preferIPv4Stack)
       toInet4SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]])
