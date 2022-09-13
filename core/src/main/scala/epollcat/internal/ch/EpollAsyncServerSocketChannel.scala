@@ -133,9 +133,10 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
-      val addr = stackalloc[posix.netinet.in.sockaddr_in]()
+      val addr = // allocate enough for an IPv6
+        stackalloc[posix.netinet.in.sockaddr_in6]().asInstanceOf[Ptr[posix.sys.socket.sockaddr]]
       val addrlen = stackalloc[posix.sys.socket.socklen_t]()
-      !addrlen = sizeof[posix.netinet.in.sockaddr_in].toUInt
+      !addrlen = sizeof[posix.netinet.in.sockaddr_in6].toUInt
       val clientFd =
         if (LinktimeInfo.isLinux)
           socket.accept4(
@@ -145,10 +146,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
             SOCK_NONBLOCK
           )
         else {
-          posix
-            .sys
-            .socket
-            .accept(fd, addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]], addrlen)
+          posix.sys.socket.accept(fd, addr, addrlen)
         }
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
@@ -164,7 +162,16 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
         try {
           if (!LinktimeInfo.isLinux)
             SocketHelpers.setNonBlocking(clientFd)
-          val ch = EpollAsyncSocketChannel(clientFd, SocketHelpers.toInetSocketAddress(addr))
+          val inetAddr =
+            if (SocketHelpers.preferIPv4Stack)
+              SocketHelpers.toInet4SocketAddress(
+                addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]]
+              )
+            else
+              SocketHelpers.toInet6SocketAddress(
+                addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in6]]
+              )
+          val ch = EpollAsyncSocketChannel(clientFd, inetAddr)
           handler.completed(ch, attachment)
         } catch {
           case NonFatal(ex) =>

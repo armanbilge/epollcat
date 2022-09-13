@@ -97,12 +97,12 @@ class TcpSuite extends EpollcatSuite {
           _ <- IO(assertEquals(res, "pong"))
         } yield ()
 
-        serverCh.bind(new InetSocketAddress(0)) *> server.both(client).void
+        serverCh.bind(new InetSocketAddress("localhost", 0)) *> server.both(client).void
     }
   }
 
   test("local and remote addresses") {
-    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("127.0.0.1", 0))).use {
+    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("localhost", 0))).use {
       server =>
         IOSocketChannel.open.use { clientCh =>
           server.localAddress.flatMap(clientCh.connect(_)) *>
@@ -126,7 +126,7 @@ class TcpSuite extends EpollcatSuite {
   test("read after shutdownInput") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use { addr =>
         IOSocketChannel.open.use { ch =>
@@ -160,7 +160,7 @@ class TcpSuite extends EpollcatSuite {
   test("ConnectException") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .use(_.localAddress)
       .flatMap(addr => IOSocketChannel.open.use(_.connect(addr)))
       .interceptMessage[ConnectException]("Connection refused")
@@ -169,7 +169,7 @@ class TcpSuite extends EpollcatSuite {
   test("BindException - EADDRINUSE") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use(addr => IOServerSocketChannel.open.use(_.bind(addr)))
       .interceptMessage[BindException]("Address already in use")
@@ -198,7 +198,7 @@ class TcpSuite extends EpollcatSuite {
   test("ClosedChannelException") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use { addr =>
         IOSocketChannel.open.use { ch =>
@@ -212,7 +212,7 @@ class TcpSuite extends EpollcatSuite {
     IOServerSocketChannel.open.use { server =>
       IOSocketChannel.open.use { clientCh =>
         for {
-          _ <- server.bind(new InetSocketAddress(0))
+          _ <- server.bind(new InetSocketAddress("localhost", 0))
           addr <- server.localAddress
           _ <- clientCh.connect(addr)
           _ <- clientCh.write(ByteBuffer.wrap("Hello!".getBytes))
@@ -232,7 +232,7 @@ class TcpSuite extends EpollcatSuite {
     // not the underlying AsynchronousSocketChannel#accept implementation
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .flatMap(_.accept)
       .use_
       .timeoutTo(100.millis, IO.unit)

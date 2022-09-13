@@ -26,6 +26,7 @@ private[ch] object socket {
   final val SOCK_NONBLOCK = 2048 // only in Linux and FreeBSD, but not macOS
 
   // only supported on Linux and FreeBSD, but not macOS
+  @name("epollcat_accept4") // can remove glue code in SN 0.5
   def accept4(sockfd: CInt, addr: Ptr[sockaddr], addrlen: Ptr[socklen_t], flags: CInt): CInt =
     extern
 }
