@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "0.0"
+ThisBuild / tlBaseVersion := "0.1"
 
 ThisBuild / organization := "com.armanbilge"
 ThisBuild / organizationName := "Arman Bilge"
@@ -26,8 +26,8 @@ ThisBuild / githubWorkflowBuild ++= Seq(
   )
 )
 
-val catsEffectVersion = "3.3.14-6-d8a0441"
-val munitCEVersion = "2.0-5e03bfc"
+val catsEffectVersion = "3.3.14"
+val munitCEVersion = "2.0.0-M3"
 
 lazy val root = tlCrossRootProject.aggregate(core, tests, example)
 
