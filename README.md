@@ -4,12 +4,10 @@ An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions
 
 The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
-Please try it and contribute bug reports and fixes! Snapshots are available [here](https://s01.oss.sonatype.org/content/repositories/snapshots/com/armanbilge/epollcat_native0.4_3/) for Scala 2.12, 2.13, and 3.
+Please try it and contribute bug reports and fixes!
 
 ```scala
-libraryDependencies ++= Seq(
-  "com.armanbilge" %%% "epollcat" % "0.1.0"
-)
+libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.0"
 ```
 
 ## FAQ
