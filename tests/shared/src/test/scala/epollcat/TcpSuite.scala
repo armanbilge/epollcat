@@ -242,4 +242,8 @@ class TcpSuite extends EpollcatSuite {
     IOSocketChannel.open.use_
   }
 
+  test("immediately closing a server socket does not hang") {
+    IOServerSocketChannel.open.use_
+  }
+
 }
