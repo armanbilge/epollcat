@@ -70,30 +70,29 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   def getOption[T](name: SocketOption[T]): T = ???
 
   def bind(local: SocketAddress, backlog: Int): AsynchronousServerSocketChannel = {
-    val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
-    Zone { implicit z =>
-      val addr = local.asInstanceOf[InetSocketAddress]
-      val hints = stackalloc[posix.netdb.addrinfo]()
-      hints.ai_family = posix.sys.socket.AF_INET
-      hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
-      hints.ai_socktype = posix.sys.socket.SOCK_STREAM
-      val rtn = posix
-        .netdb
-        .getaddrinfo(
-          toCString(addr.getAddress().getHostAddress()),
-          toCString(addr.getPort.toString),
-          hints,
-          addrinfo
-        )
-      if (rtn != 0)
-        throw new IOException(s"getaddrinfo: ${rtn}")
+    val addrinfo = SocketHelpers.toAddrinfo(local.asInstanceOf[InetSocketAddress]) match {
+      case Left(ex) => throw ex
+      case Right(addrinfo) => addrinfo
     }
 
-    val bindRet = posix.sys.socket.bind(fd, (!addrinfo).ai_addr, (!addrinfo).ai_addrlen)
-    posix.netdb.freeaddrinfo(!addrinfo)
+    val bindRet = posix.sys.socket.bind(fd, addrinfo.ai_addr, addrinfo.ai_addrlen)
+    posix.netdb.freeaddrinfo(addrinfo)
+
+    // posix.errno.EADDRNOTAVAIL becomes available in Scala Native 0.5.0
+    val EADDRNOTAVAIL =
+      if (LinktimeInfo.isLinux) 99
+      else if (LinktimeInfo.isMac) 49
+      else Int.MaxValue // punt, will never match an errno.
+
     if (bindRet == -1) errno.errno match {
       case e if e == posix.errno.EADDRINUSE =>
         throw new BindException("Address already in use")
+      case e if e == EADDRNOTAVAIL =>
+        // Whis code may have to change when support for a new OS is added.
+        if (LinktimeInfo.isMac)
+          throw new BindException("Can't assign requested address")
+        else // Linux & a bet that an unknownd OS uses good grammer.
+          throw new BindException("Cannot assign requested address")
       case other => throw new IOException(s"bind: $other")
     }
 
@@ -134,11 +133,21 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
       handler: CompletionHandler[AsynchronousSocketChannel, _ >: A]
   ): Unit = {
     if (readReady) {
+      val addr = // allocate enough for an IPv6
+        stackalloc[posix.netinet.in.sockaddr_in6]().asInstanceOf[Ptr[posix.sys.socket.sockaddr]]
+      val addrlen = stackalloc[posix.sys.socket.socklen_t]()
+      !addrlen = sizeof[posix.netinet.in.sockaddr_in6].toUInt
       val clientFd =
         if (LinktimeInfo.isLinux)
-          socket.accept4(fd, null, null, SOCK_NONBLOCK)
-        else
-          socket.accept(fd, null, null)
+          socket.accept4(
+            fd,
+            addr.asInstanceOf[Ptr[posix.sys.socket.sockaddr]],
+            addrlen,
+            SOCK_NONBLOCK
+          )
+        else {
+          posix.sys.socket.accept(fd, addr, addrlen)
+        }
       if (clientFd == -1) {
         if (errno.errno == posix.errno.EAGAIN || errno.errno == posix.errno.EWOULDBLOCK) {
           readReady = false
@@ -153,7 +162,17 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
         try {
           if (!LinktimeInfo.isLinux)
             SocketHelpers.setNonBlocking(clientFd)
-          handler.completed(EpollAsyncSocketChannel.open(clientFd), attachment)
+          val inetAddr =
+            if (SocketHelpers.preferIPv4Stack)
+              SocketHelpers.toInet4SocketAddress(
+                addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]]
+              )
+            else
+              SocketHelpers.toInet6SocketAddress(
+                addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in6]]
+              )
+          val ch = EpollAsyncSocketChannel(clientFd, inetAddr)
+          handler.completed(ch, attachment)
         } catch {
           case NonFatal(ex) =>
             handler.failed(ex, attachment)

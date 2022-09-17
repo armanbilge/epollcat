@@ -17,95 +17,21 @@
 package epollcat
 
 import cats.effect.IO
-import cats.effect.kernel.Resource
 import cats.syntax.all._
 
 import java.net.BindException
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.SocketAddress
-import java.net.SocketOption
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousServerSocketChannel
-import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.ClosedChannelException
-import java.nio.channels.CompletionHandler
 import java.nio.charset.StandardCharsets
 import scala.concurrent.duration._
 
 class TcpSuite extends EpollcatSuite {
 
   override def munitIOTimeout = 20.seconds
-
-  def toHandler[A](cb: Either[Throwable, A] => Unit): CompletionHandler[A, Any] =
-    new CompletionHandler[A, Any] {
-      def completed(result: A, attachment: Any): Unit = cb(Right(result))
-      def failed(exc: Throwable, attachment: Any): Unit = cb(Left(exc))
-    }
-
-  final class IOSocketChannel(ch: AsynchronousSocketChannel) {
-    def connect(remote: SocketAddress): IO[Unit] =
-      IO.async_[Void](cb => ch.connect(remote, null, toHandler(cb))).void
-
-    def read(dest: ByteBuffer): IO[Int] =
-      IO.async_[Integer](cb => ch.read(dest, null, toHandler(cb))).map(_.intValue)
-
-    def write(src: ByteBuffer): IO[Int] =
-      IO.async_[Integer](cb => ch.write(src, null, toHandler(cb))).map(_.intValue)
-
-    def shutdownInput: IO[Unit] = IO(ch.shutdownInput()).void
-
-    def shutdownOutput: IO[Unit] = IO(ch.shutdownOutput()).void
-
-    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
-      IO(ch.setOption(option, value)).void
-
-    def localAddress: IO[SocketAddress] =
-      IO(ch.getLocalAddress())
-
-    def remoteAddress: IO[SocketAddress] =
-      IO(ch.getRemoteAddress())
-  }
-
-  object IOSocketChannel {
-    def open: Resource[IO, IOSocketChannel] =
-      Resource
-        .fromAutoCloseable(IO(AsynchronousSocketChannel.open()))
-        .map(new IOSocketChannel(_))
-  }
-
-  final class IOServerSocketChannel(ch: AsynchronousServerSocketChannel) {
-    def bind(local: SocketAddress): IO[Unit] =
-      IO(ch.bind(local)).void
-
-    def accept: Resource[IO, IOSocketChannel] =
-      Resource
-        .makeFull[IO, AsynchronousSocketChannel] { poll =>
-          poll {
-            IO.async { cb =>
-              IO(ch.accept(null, toHandler(cb)))
-                // it seems the only way to cancel accept is to close the socket :(
-                .as(Some(IO(ch.close())))
-            }
-          }
-        }(ch => IO(ch.close()))
-        .map(new IOSocketChannel(_))
-
-    def setOption[T](option: SocketOption[T], value: T): IO[Unit] =
-      IO(ch.setOption(option, value)).void
-
-    def localAddress: IO[SocketAddress] =
-      IO(ch.getLocalAddress())
-  }
-
-  object IOServerSocketChannel {
-    def open: Resource[IO, IOServerSocketChannel] =
-      Resource
-        .fromAutoCloseable(IO(AsynchronousServerSocketChannel.open()))
-        .map(new IOServerSocketChannel(_))
-  }
 
   def decode(bb: ByteBuffer): String =
     StandardCharsets.UTF_8.decode(bb).toString()
@@ -171,17 +97,19 @@ class TcpSuite extends EpollcatSuite {
           _ <- IO(assertEquals(res, "pong"))
         } yield ()
 
-        serverCh.bind(new InetSocketAddress(0)) *> server.both(client).void
+        serverCh.bind(new InetSocketAddress("localhost", 0)) *> server.both(client).void
     }
   }
 
   test("local and remote addresses") {
-    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("127.0.0.1", 0))).use {
+    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("localhost", 0))).use {
       server =>
         IOSocketChannel.open.use { clientCh =>
           server.localAddress.flatMap(clientCh.connect(_)) *>
             server.accept.use { serverCh =>
               for {
+                _ <- serverCh.shutdownOutput
+                _ <- clientCh.shutdownOutput
                 serverLocal <- serverCh.localAddress
                 serverRemote <- serverCh.remoteAddress
                 clientLocal <- clientCh.localAddress
@@ -198,7 +126,7 @@ class TcpSuite extends EpollcatSuite {
   test("read after shutdownInput") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use { addr =>
         IOSocketChannel.open.use { ch =>
@@ -232,25 +160,45 @@ class TcpSuite extends EpollcatSuite {
   test("ConnectException") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .use(_.localAddress)
       .flatMap(addr => IOSocketChannel.open.use(_.connect(addr)))
       .interceptMessage[ConnectException]("Connection refused")
   }
 
-  test("BindException") {
+  test("BindException - EADDRINUSE") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use(addr => IOServerSocketChannel.open.use(_.bind(addr)))
       .interceptMessage[BindException]("Address already in use")
   }
 
+  test("BindException - EADDRNOTAVAIL") {
+    // 240.0.0.1 is in reserved range 240.0.0.0/24.  Used to elicit Exception.
+    IOServerSocketChannel
+      .open
+      .use { ch =>
+        for {
+          _ <- ch.bind(new InetSocketAddress("240.0.0.1", 0))
+        } yield ()
+      }
+      .interceptMessage[BindException] {
+        val osName = System.getProperty("os.name", "unknown").toLowerCase
+        if (osName.startsWith("linux"))
+          "Cannot assign requested address"
+        else if (osName.startsWith("mac"))
+          "Can't assign requested address"
+        else
+          "unknown operating system"
+      }
+  }
+
   test("ClosedChannelException") {
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .evalMap(_.localAddress)
       .use { addr =>
         IOSocketChannel.open.use { ch =>
@@ -264,7 +212,7 @@ class TcpSuite extends EpollcatSuite {
     IOServerSocketChannel.open.use { server =>
       IOSocketChannel.open.use { clientCh =>
         for {
-          _ <- server.bind(new InetSocketAddress(0))
+          _ <- server.bind(new InetSocketAddress("localhost", 0))
           addr <- server.localAddress
           _ <- clientCh.connect(addr)
           _ <- clientCh.write(ByteBuffer.wrap("Hello!".getBytes))
@@ -284,7 +232,7 @@ class TcpSuite extends EpollcatSuite {
     // not the underlying AsynchronousSocketChannel#accept implementation
     IOServerSocketChannel
       .open
-      .evalTap(_.bind(new InetSocketAddress(0)))
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
       .flatMap(_.accept)
       .use_
       .timeoutTo(100.millis, IO.unit)
