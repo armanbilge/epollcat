@@ -238,4 +238,8 @@ class TcpSuite extends EpollcatSuite {
       .timeoutTo(100.millis, IO.unit)
   }
 
+  test("immediately closing a socket does not hang") {
+    IOSocketChannel.open.use_
+  }
+
 }
