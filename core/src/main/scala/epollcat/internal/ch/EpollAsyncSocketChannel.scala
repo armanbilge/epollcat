@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
+import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.posix
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
@@ -310,7 +311,12 @@ final class EpollAsyncSocketChannel private (
 
       @tailrec
       def go(buf: Ptr[Byte], count: Int, total: Int): Unit = {
-        val wrote = posix.unistd.write(fd, buf, count.toULong)
+        val wrote =
+          if (LinktimeInfo.isLinux)
+            posix.sys.socket.send(fd, buf, count.toULong, socket.MSG_NOSIGNAL).toInt
+          else
+            posix.unistd.write(fd, buf, count.toULong)
+
         if (wrote == -1) {
           val e = errno.errno
           if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {

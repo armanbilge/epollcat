@@ -51,6 +51,7 @@ private[ch] object SocketHelpers {
       throw new RuntimeException(s"socket: ${errno.errno}")
 
     if (!LinktimeInfo.isLinux) setNonBlocking(fd)
+    if (LinktimeInfo.isMac) setNoSigPipe(fd)
 
     fd
   }
@@ -59,6 +60,10 @@ private[ch] object SocketHelpers {
     if (posix.fcntl.fcntl(fd, posix.fcntl.F_SETFL, posix.fcntl.O_NONBLOCK) != 0)
       throw new IOException(s"fcntl: ${errno.errno}")
     else ()
+
+  // macOS-only
+  def setNoSigPipe(fd: CInt): Unit =
+    setOption(fd, socket.SO_NOSIGPIPE, true)
 
   def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()
