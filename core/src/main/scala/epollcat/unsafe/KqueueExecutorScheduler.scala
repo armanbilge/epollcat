@@ -44,26 +44,26 @@ private[unsafe] final class KqueueExecutorScheduler(
     val timeoutIsInfinite = timeout == Duration.Inf
     val timeoutIsZero = timeout == Duration.Zero
     val noCallbacks = callbacks.isEmpty
-    val changeCount = changes.size()
+
+    // pre-process the changes to filter canceled ones
+    val changelist = stackalloc[kevent64_s](changes.size().toLong)
+    var change = changelist
+    var changeCount = 0
+    while (!changes.isEmpty()) {
+      val evAdd = changes.poll()
+      if (!evAdd.canceled) {
+        change.ident = evAdd.fd.toULong
+        change.filter = evAdd.filter
+        change.flags = (EV_ADD | EV_CLEAR).toUShort
+        change.udata = EventNotificationCallback.toPtr(evAdd.cb)
+        change += 1
+        changeCount += 1
+      }
+    }
 
     if ((timeoutIsInfinite || timeoutIsZero) && noCallbacks && changeCount == 0)
       false // nothing to do here. refer to scaladoc on PollingExecutorScheduler#poll
     else {
-
-      val changelist = stackalloc[kevent64_s](changeCount.toLong)
-      var change = changelist
-      var finalChangeCount = 0
-      while (!changes.isEmpty()) {
-        val evAdd = changes.poll()
-        if (!evAdd.canceled) {
-          change.ident = evAdd.fd.toULong
-          change.filter = evAdd.filter
-          change.flags = (EV_ADD | EV_CLEAR).toUShort
-          change.udata = EventNotificationCallback.toPtr(evAdd.cb)
-          change += 1
-          finalChangeCount += 1
-        }
-      }
 
       val timeoutSpec =
         if (timeoutIsInfinite || timeoutIsZero) null
@@ -78,7 +78,7 @@ private[unsafe] final class KqueueExecutorScheduler(
       val eventlist = stackalloc[kevent64_s](maxEvents.toLong)
       val flags = (if (timeoutIsZero) KEVENT_FLAG_IMMEDIATE else KEVENT_FLAG_NONE).toUInt
       val triggeredEvents =
-        kevent64(kqfd, changelist, finalChangeCount, eventlist, maxEvents, flags, timeoutSpec)
+        kevent64(kqfd, changelist, changeCount, eventlist, maxEvents, flags, timeoutSpec)
 
       if (triggeredEvents >= 0) {
         var i = 0
