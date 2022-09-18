@@ -239,10 +239,12 @@ class TcpSuite extends EpollcatSuite {
   }
 
   test("immediately closing a socket does not hang") {
+    // note: on failure the test passes, but the test runner hangs
     IOSocketChannel.open.use_
   }
 
   test("immediately closing a server socket does not hang") {
+    // note: on failure the test passes, but the test runner hangs
     IOServerSocketChannel.open.use_
   }
 
