@@ -65,54 +65,53 @@ private[unsafe] final class KqueueExecutorScheduler(
         }
       }
 
-      if (!noCallbacks) {
-        val timeoutSpec =
-          if (timeoutIsInfinite || timeoutIsZero) null
-          else {
-            val ts = stackalloc[time.timespec]()
-            val sec = timeout.toSeconds
-            ts.tv_sec = sec
-            ts.tv_nsec = (timeout - sec.seconds).toNanos
-            ts
-          }
-
-        val eventlist = stackalloc[kevent64_s](maxEvents.toLong)
-        val flags = (if (timeoutIsZero) KEVENT_FLAG_IMMEDIATE else KEVENT_FLAG_NONE).toUInt
-        val triggeredEvents =
-          kevent64(kqfd, changelist, finalChangeCount, eventlist, maxEvents, flags, timeoutSpec)
-
-        if (triggeredEvents >= 0) {
-          var i = 0
-          var event = eventlist
-          while (i < triggeredEvents) {
-            if ((event.flags.toLong & EV_ERROR) != 0) {
-
-              // TODO it would be interesting to propagate this failure via the callback
-              reportFailure(
-                new RuntimeException(
-                  s"kevent64: flags=${event.flags.toHexString} errno=${event.data}"
-                )
-              )
-
-            } else if (callbacks.contains(event.ident.toLong)) {
-              val filter = event.filter
-              val cb = EventNotificationCallback.fromPtr(event.udata)
-
-              try {
-                cb.notifyEvents(filter == EVFILT_READ, filter == EVFILT_WRITE)
-              } catch {
-                case NonFatal(ex) =>
-                  reportFailure(ex)
-              }
-            }
-
-            i += 1
-            event += 1
-          }
-        } else {
-          throw new RuntimeException(s"kevent64: ${errno.errno}")
+      val timeoutSpec =
+        if (timeoutIsInfinite || timeoutIsZero) null
+        else {
+          val ts = stackalloc[time.timespec]()
+          val sec = timeout.toSeconds
+          ts.tv_sec = sec
+          ts.tv_nsec = (timeout - sec.seconds).toNanos
+          ts
         }
+
+      val eventlist = stackalloc[kevent64_s](maxEvents.toLong)
+      val flags = (if (timeoutIsZero) KEVENT_FLAG_IMMEDIATE else KEVENT_FLAG_NONE).toUInt
+      val triggeredEvents =
+        kevent64(kqfd, changelist, finalChangeCount, eventlist, maxEvents, flags, timeoutSpec)
+
+      if (triggeredEvents >= 0) {
+        var i = 0
+        var event = eventlist
+        while (i < triggeredEvents) {
+          if ((event.flags.toLong & EV_ERROR) != 0) {
+
+            // TODO it would be interesting to propagate this failure via the callback
+            reportFailure(
+              new RuntimeException(
+                s"kevent64: flags=${event.flags.toHexString} errno=${event.data}"
+              )
+            )
+
+          } else if (callbacks.contains(event.ident.toLong)) {
+            val filter = event.filter
+            val cb = EventNotificationCallback.fromPtr(event.udata)
+
+            try {
+              cb.notifyEvents(filter == EVFILT_READ, filter == EVFILT_WRITE)
+            } catch {
+              case NonFatal(ex) =>
+                reportFailure(ex)
+            }
+          }
+
+          i += 1
+          event += 1
+        }
+      } else {
+        throw new RuntimeException(s"kevent64: ${errno.errno}")
       }
+
       !changes.isEmpty() || callbacks.nonEmpty
     }
   }
