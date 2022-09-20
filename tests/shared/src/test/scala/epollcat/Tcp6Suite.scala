@@ -24,7 +24,6 @@ import java.net.InetSocketAddress
 import java.net.StandardSocketOptions
 import java.net.BindException
 import java.nio.ByteBuffer
-import java.nio.channels.UnsupportedAddressTypeException
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.charset.StandardCharsets
 
