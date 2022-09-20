@@ -46,6 +46,10 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .enablePlugins(NoPublishPlugin)
   .nativeConfigure(_.dependsOn(core))
   .settings(
+    // https://github.com/scalameta/munit/blob/92710a507339d20368d251feadf66e4f9f4e1840/junit-interface/src/main/java/munit/internal/junitinterface/JUnitRunner.java#L75
+    // note that the equivalent `--logger=sbt` did not work for some reason
+    // using the sbt logger prevents tests from different suites being interleaved
+    Test / testOptions += Tests.Argument("+l"),
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-effect" % catsEffectVersion,
       "org.typelevel" %%% "munit-cats-effect" % munitCEVersion % Test
