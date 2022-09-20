@@ -149,17 +149,6 @@ class Tcp6Suite extends EpollcatSuite {
       }
   }
 
-  test("Bind ip6-localhost") {
-    IOServerSocketChannel
-      .open
-      .evalTap(_.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE))
-      .use { ch =>
-        for {
-          _ <- ch.bind(new InetSocketAddress("ip6-localhost", 0))
-        } yield ()
-      }
-  }
-
   // Manually verified with netstat that IPv6 wildcard is being used on wire.
   test("server-client ping-pong ::0 IPv6") {
     (
@@ -227,28 +216,6 @@ class Tcp6Suite extends EpollcatSuite {
             }
         }
       }
-  }
-
-  test("local and remote addresses ip6-localhost") {
-    IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("ip6-localhost", 0))).use {
-      server =>
-        IOSocketChannel.open.use { clientCh =>
-          server.localAddress.flatMap(clientCh.connect(_)) *>
-            server.accept.use { serverCh =>
-              for {
-                _ <- serverCh.shutdownOutput
-                _ <- clientCh.shutdownOutput
-                serverLocal <- serverCh.localAddress
-                serverRemote <- serverCh.remoteAddress
-                clientLocal <- clientCh.localAddress
-                clientRemote <- clientCh.remoteAddress
-              } yield {
-                assertEquals(clientRemote, serverLocal)
-                assertEquals(serverRemote, clientLocal)
-              }
-            }
-        }
-    }
   }
 
   /* Operating systems differ as to whether binding to ::0 causes the server
