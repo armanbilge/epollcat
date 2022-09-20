@@ -55,7 +55,7 @@ object NetworkProtocolInfo {
          *    BindException is defined, and tends to happen on macOS
          */
         case e: BindException => throw e // Apple and ??
-        case e: java.io.IOException => false // expected on Linux IPv4
+        case _: java.io.IOException => false // expected on Linux IPv4
         // _Everything else is unexpected so let it bubble up.
       } finally {
         ch.close()
@@ -171,7 +171,6 @@ class Tcp6Suite extends EpollcatSuite {
       case (serverCh, clientCh) =>
         val server = serverCh.accept.use { ch =>
           for {
-            lclAddr <- serverCh.localAddress
             bb <- IO(ByteBuffer.allocate(4))
             readed <- ch.read(bb)
             _ <- IO(assertEquals(readed, 4))
