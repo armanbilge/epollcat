@@ -46,6 +46,7 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
   .enablePlugins(NoPublishPlugin)
   .nativeConfigure(_.dependsOn(core))
   .settings(
+    Test / testOptions += Tests.Argument("+l"),
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-effect" % catsEffectVersion,
       "org.typelevel" %%% "munit-cats-effect" % munitCEVersion % Test
