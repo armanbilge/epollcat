@@ -163,7 +163,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
           if (!LinktimeInfo.isLinux)
             SocketHelpers.setNonBlocking(clientFd)
           val inetAddr =
-            if (SocketHelpers.preferIPv4Stack)
+            if (SocketHelpers.useIPv4Stack)
               SocketHelpers.toInet4SocketAddress(
                 addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]]
               )
