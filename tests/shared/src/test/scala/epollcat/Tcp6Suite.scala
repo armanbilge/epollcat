@@ -271,7 +271,6 @@ class Tcp6Suite extends EpollcatSuite {
       case (serverCh, clientCh) =>
         val server = serverCh.accept.use { ch =>
           for {
-            lclAddr <- serverCh.localAddress
             bb <- IO(ByteBuffer.allocate(4))
             readed <- ch.read(bb)
             _ <- IO(assertEquals(readed, 4))
