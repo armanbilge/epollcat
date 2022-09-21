@@ -7,7 +7,7 @@ The primary goal of this project is to provide implementations for Java I/O APIs
 Please try it and contribute bug reports and fixes!
 
 ```scala
-libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.0"
+libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.1"
 ```
 
 ## FAQ
