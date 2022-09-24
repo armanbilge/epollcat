@@ -16,12 +16,10 @@
 
 package epollcat.internal.ch
 
-import scala.annotation.nowarn
 import scala.scalanative.unsafe._
 import scala.scalanative.posix.sys.socket._
 
 @extern
-@nowarn
 private[ch] object socket {
   final val SOCK_NONBLOCK = 2048 // only in Linux and FreeBSD, but not macOS
 
