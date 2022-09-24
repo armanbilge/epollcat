@@ -21,4 +21,7 @@ import munit.CatsEffectSuite
 
 trait EpollcatSuite extends CatsEffectSuite {
   override def munitIORuntime = EpollRuntime.global
+
+  final val isJVM = false
+  final val isNative = true
 }

@@ -18,4 +18,9 @@ package epollcat
 
 import munit.CatsEffectSuite
 
-trait EpollcatSuite extends CatsEffectSuite
+trait EpollcatSuite extends CatsEffectSuite {
+
+  final val isJVM = true
+  final val isNative = false
+
+}

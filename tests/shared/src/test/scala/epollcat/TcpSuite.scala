@@ -27,7 +27,21 @@ import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.ClosedChannelException
 import java.nio.charset.StandardCharsets
+
 import scala.concurrent.duration._
+
+/* This file should be agnostic or blind to the underlying
+ * TCP protocol: IPv4 or IPv6. It should neither know nor care about
+ * the implementation protocol.
+ *
+ * Protocol specific testing should occur in related separate files.
+ */
+
+/* IPv4 testing should take place on systems running only IPv4.
+ * This is because of the way Scala Native handles the system property
+ * "java.net.preferIPv4Stack" interacts poorly with nameservers
+ * possibly being configured to returning IPv6 addresses before IPv4 ones,
+ */
 
 class TcpSuite extends EpollcatSuite {
 
@@ -236,6 +250,16 @@ class TcpSuite extends EpollcatSuite {
       .flatMap(_.accept)
       .use_
       .timeoutTo(100.millis, IO.unit)
+  }
+
+  test("immediately closing a socket does not hang") {
+    // note: on failure the test passes, but the test runner hangs
+    IOSocketChannel.open.use_
+  }
+
+  test("immediately closing a server socket does not hang") {
+    // note: on failure the test passes, but the test runner hangs
+    IOServerSocketChannel.open.use_
   }
 
 }

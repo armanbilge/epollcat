@@ -30,8 +30,80 @@ import scala.scalanative.unsafe._
 
 private[ch] object SocketHelpers {
 
-  lazy val preferIPv4Stack =
-    java.lang.Boolean.parseBoolean(System.getProperty("java.net.preferIPv4Stack", "false"))
+  /* An approach with better software engineering becomes available
+   * when epollcat no longer supports Scala Native 0.4.n.
+   * One can eliminate the chance of races & mismatches by allocating a
+   * Scala Native socket and examining its address family. Scala Native
+   * will have done all the work.
+   *
+   * Tcp6Suite.scala uses a similar technique querying an
+   * AsynchronousServerSocketChannel.
+   */
+
+  lazy val useIPv4Stack = {
+    val systemPropertyForcesIPv4 =
+      java.lang.Boolean.parseBoolean(System.getProperty("java.net.preferIPv4Stack", "false"))
+    systemPropertyForcesIPv4 || hasOnlyIPv4Stack()
+  }
+
+  private def hasOnlyIPv4Stack(): Boolean = {
+    val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
+    val hints = stackalloc[posix.netdb.addrinfo]()
+
+    hints.ai_family = posix.sys.socket.AF_INET6
+    hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
+    hints.ai_flags |= posix.netdb.AI_PASSIVE // ServerSocket
+    hints.ai_flags |= posix.netdb.AI_ADDRCONFIG
+    hints.ai_socktype = posix.sys.socket.SOCK_STREAM
+
+    val typelevelOrg6 = c"2606:50c0:8003::153"
+
+    val rtn = posix
+      .netdb
+      .getaddrinfo(
+        typelevelOrg6,
+        c"0",
+        hints,
+        addrinfo
+      )
+
+    val hasIPv6 =
+      try {
+        if (rtn == 0) {
+          // should never happen, but check anyways
+          java.util.Objects.requireNonNull(!addrinfo)
+          (!addrinfo).ai_family == posix.sys.socket.AF_INET6
+        } else {
+
+          if (rtn == posix.netdb.EAI_NONAME) { // expected on IPv4 & OK
+            false
+          } else if (rtn == posix.netdb.EAI_FAMILY) { // no IPv6 stack at all
+            false
+          } else {
+            val EAI_ADDRFAMILY =
+              if (LinktimeInfo.isLinux) -9
+              else if (LinktimeInfo.isFreeBSD) 1 // from FreeBSD source, untested
+              else {
+                // EAI_ADDRFAMILY is not defined on macOS & others.
+                // Force mismatch & allow throw, Exception has info we want to see.
+                0
+              }
+
+            if (rtn == EAI_ADDRFAMILY) {
+              false
+            } else {
+              val msg =
+                s"getaddrinfo: ${SocketHelpers.getGaiErrorMessage(rtn)}"
+              throw new IOException(msg)
+            }
+          }
+        }
+      } finally {
+        posix.netdb.freeaddrinfo(!addrinfo)
+      }
+
+    !hasIPv6
+  }
 
   def mkNonBlocking(): CInt = {
     val SOCK_NONBLOCK =
@@ -40,7 +112,7 @@ private[ch] object SocketHelpers {
       else 0
 
     val domain =
-      if (preferIPv4Stack)
+      if (useIPv4Stack)
         posix.sys.socket.AF_INET
       else
         posix.sys.socket.AF_INET6
@@ -51,6 +123,7 @@ private[ch] object SocketHelpers {
       throw new RuntimeException(s"socket: ${errno.errno}")
 
     if (!LinktimeInfo.isLinux) setNonBlocking(fd)
+    if (LinktimeInfo.isMac) setNoSigPipe(fd)
 
     fd
   }
@@ -59,6 +132,10 @@ private[ch] object SocketHelpers {
     if (posix.fcntl.fcntl(fd, posix.fcntl.F_SETFL, posix.fcntl.O_NONBLOCK) != 0)
       throw new IOException(s"fcntl: ${errno.errno}")
     else ()
+
+  // macOS-only
+  def setNoSigPipe(fd: CInt): Unit =
+    setOption(fd, socket.SO_NOSIGPIPE, true)
 
   def setOption(fd: CInt, option: CInt, value: Boolean): Unit = {
     val ptr = stackalloc[CInt]()
@@ -112,7 +189,7 @@ private[ch] object SocketHelpers {
     !len = sizeof[posix.netinet.in.sockaddr_in6].toUInt
     if (posix.sys.socket.getsockname(fd, addr, len) == -1)
       throw new IOException(s"getsockname: ${errno.errno}")
-    if (preferIPv4Stack)
+    if (useIPv4Stack)
       toInet4SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]])
     else
       toInet6SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in6]])
@@ -151,12 +228,12 @@ private[ch] object SocketHelpers {
       val addrinfo = stackalloc[Ptr[posix.netdb.addrinfo]]()
       val hints = stackalloc[posix.netdb.addrinfo]()
       hints.ai_family =
-        if (preferIPv4Stack)
+        if (useIPv4Stack)
           posix.sys.socket.AF_INET
         else
           posix.sys.socket.AF_INET6
       hints.ai_flags = posix.netdb.AI_NUMERICHOST | posix.netdb.AI_NUMERICSERV
-      if (!preferIPv4Stack) hints.ai_flags |= posix.netdb.AI_V4MAPPED
+      if (!useIPv4Stack) hints.ai_flags |= posix.netdb.AI_V4MAPPED
       hints.ai_socktype = posix.sys.socket.SOCK_STREAM
       val rtn = posix
         .netdb

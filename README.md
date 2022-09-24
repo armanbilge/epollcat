@@ -4,10 +4,8 @@ An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions
 
 The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
-Please try it and contribute bug reports and fixes!
-
 ```scala
-libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.0"
+libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.1"
 ```
 
 ## FAQ
@@ -52,7 +50,7 @@ I thought a lot about this and where I should best put my time and energy. Here 
 
 1. Actually, libuv is a bit too high-level for our needs: it essentially offers an entire runtime, including a scheduler and a blocking pool. Ideally we would use only its cross-platform I/O polling capability within our own Cats Effect runtime, but this does not seem to be exposed unfortunately.
 
-    This becomes especially relevant when Scala Native supports multi-threading. Cats Effect JVM ships with a [fantastic runtime](https://typelevel.org/cats-effect/docs/schedulers#jvm) that I am hopeful we can eventually cross-build for Native. Meanwhile, the libuv event loop is fundamentally single-threaded.
+    This becomes especially relevant when Scala Native supports multi-threading. Cats Effect JVM ships with a [fantastic runtime](https://github.com/typelevel/cats-effect#performance) that I am hopeful we can eventually cross-build for Native. Meanwhile, the libuv event loop is fundamentally single-threaded.
 
     Since in the long run implementing our own async I/O library seems inevitable, this project makes an early investment in that direction.
 

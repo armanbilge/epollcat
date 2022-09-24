@@ -16,14 +16,18 @@
 
 package epollcat.internal.ch
 
-import scala.annotation.nowarn
 import scala.scalanative.unsafe._
 import scala.scalanative.posix.sys.socket._
 
 @extern
-@nowarn
 private[ch] object socket {
   final val SOCK_NONBLOCK = 2048 // only in Linux and FreeBSD, but not macOS
+
+  // only on Linux and FreeBSD, but not macOS
+  final val MSG_NOSIGNAL = 0x4000 /* Do not generate SIGPIPE */
+
+  // only on macOS and some BSDs (?)
+  final val SO_NOSIGPIPE = 0x1022 /* APPLE: No SIGPIPE on EPIPE */
 
   // only supported on Linux and FreeBSD, but not macOS
   @name("epollcat_accept4") // can remove glue code in SN 0.5

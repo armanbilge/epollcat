@@ -16,11 +16,9 @@
 
 package epollcat.unsafe
 
-import scala.annotation.nowarn
 import scala.scalanative.unsafe._
 
 @extern
-@nowarn
 private[unsafe] object epoll {
 
   final val EPOLL_CTL_ADD = 1
