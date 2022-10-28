@@ -2,6 +2,7 @@ package epollcat
 
 import cats.effect.IO
 import cats.effect.Resource
+import epollcat.unsafe.EventNotificationCallback
 import epollcat.unsafe.EventPollingExecutorScheduler
 import epollcat.unsafe.EpollRuntime
 
@@ -11,9 +12,10 @@ import scala.scalanative.posix.unistd._
 
 class MonitorSuite extends EpollcatSuite {
 
-  val zoneResource: Resource[IO, Zone] = Resource.make(IO(Zone.open()))(z => IO(z.close()))
+  private val zoneResource: Resource[IO, Zone] =
+    Resource.make(IO(Zone.open()))(z => IO(z.close()))
 
-  val pipeResource: Resource[IO, (Int, Int)] = Resource.make {
+  private val pipeResource: Resource[IO, (Int, Int)] = Resource.make {
     zoneResource.use { implicit zone =>
       val fildes = alloc[CInt](2)
       if (pipe(fildes) != 0) {
@@ -25,42 +27,35 @@ class MonitorSuite extends EpollcatSuite {
   } {
     case (a, b) =>
       IO {
-        println("CLOSING PIPES")
         close(a)
         close(b)
         ()
       }
   }
 
-  test("compile") {
+  test("monitor a pipe") {
     val scheduler = EpollRuntime.global.scheduler.asInstanceOf[EventPollingExecutorScheduler]
 
     pipeResource.use {
       case (r, w) =>
-        IO.fromFuture {
-          IO {
-            println("TEST STARTS")
-            val promise = scala.concurrent.Promise[Unit]()
-            val byte = 10.toByte
-            scheduler.monitor(r, reads = true, writes = false)(
-              new epollcat.unsafe.EventNotificationCallback {
-                def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
-                  println("NOTIFY EVENTS")
-                  val buf = stackalloc[Byte]()
-                  val bytesRead = read(r, buf, 1L.toULong)
-                  assert(bytesRead == 1)
-                  assert(buf(0) == byte)
-                  println("SUCCESSFUL PROMISE")
-                  promise.success(())
-                }
-              })
-            val buf = stackalloc[Byte]()
-            buf(0) = byte
-            val bytesWrote = write(w, buf, 1L.toULong)
-            assert(bytesWrote == 1)
-            println("RETURNING FUTURE")
-            promise.future
+        IO.async_[Unit] { cb =>
+          val byte = 10.toByte
+          var stop: Runnable = null
+          val monitorCallback = new epollcat.unsafe.EventNotificationCallback {
+            def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
+              val readBuf = stackalloc[Byte]()
+              val bytesRead = read(r, readBuf, 1L.toULong)
+              assertEquals(bytesRead, 1)
+              assertEquals(readBuf(0), byte)
+              stop.run()
+              cb(Right(()))
+            }
           }
+          stop = scheduler.monitor(r, reads = true, writes = false)(monitorCallback)
+          val writeBuf = stackalloc[Byte]()
+          writeBuf(0) = byte
+          val wroteBytes = write(w, writeBuf, 1L.toULong)
+          assertEquals(wroteBytes, 1)
         }
     }
   }
