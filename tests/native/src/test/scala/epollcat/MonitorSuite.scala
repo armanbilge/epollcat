@@ -56,7 +56,7 @@ class MonitorSuite extends EpollcatSuite {
       IO.async_[Unit] { cb =>
         val byte = 10.toByte
         var stop: Runnable = null
-        val monitorCallback = new epollcat.unsafe.EventNotificationCallback {
+        val monitorCallback = new EventNotificationCallback {
           def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
             val readBuf = stackalloc[Byte]()
             val bytesRead = read(pipe.readFd, readBuf, 1L.toULong)
