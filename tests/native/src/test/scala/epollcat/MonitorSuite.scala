@@ -30,15 +30,13 @@ class MonitorSuite extends EpollcatSuite {
 
   class Pipe private (val readFd: Int, val writeFd: Int)
   object Pipe {
-    private val zoneResource: Resource[IO, Zone] =
-      Resource.make(IO(Zone.open()))(z => IO(z.close()))
     val make: Resource[IO, Pipe] = Resource.make {
-      zoneResource.use { implicit zone =>
-        val fildes = alloc[CInt](2)
+      IO {
+        val fildes = stackalloc[CInt](2)
         if (pipe(fildes) != 0) {
-          IO.raiseError(new Exception("Failed to create pipe"))
+          throw new Exception("Failed to create pipe")
         } else {
-          IO(new Pipe(fildes(0), fildes(1)))
+          new Pipe(fildes(0), fildes(1))
         }
       }
     }(pipe =>
