@@ -56,12 +56,17 @@ class MonitorSuite extends EpollcatSuite {
         var stop: Runnable = null
         val monitorCallback = new EventNotificationCallback {
           def notifyEvents(readReady: Boolean, writeReady: Boolean): Unit = {
-            val readBuf = stackalloc[Byte]()
-            val bytesRead = read(pipe.readFd, readBuf, 1L.toULong)
-            assertEquals(bytesRead, 1)
-            assertEquals(readBuf(0), byte)
-            stop.run()
-            cb(Right(()))
+            try {
+              val readBuf = stackalloc[Byte]()
+              val bytesRead = read(pipe.readFd, readBuf, 1L.toULong)
+              assertEquals(bytesRead, 1)
+              assertEquals(readBuf(0), byte)
+              cb(Right(()))
+            } catch {
+              case e: Throwable => cb(Left(e))
+            } finally {
+              stop.run()
+            }
           }
         }
         stop = scheduler.monitor(pipe.readFd, reads = true, writes = false)(monitorCallback)
