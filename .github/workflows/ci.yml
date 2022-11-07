@@ -32,15 +32,15 @@ jobs:
           - ubuntu-22.04
           - macos-11
           - macos-12
-        scala: [3.2.0, 2.12.17, 2.13.10]
+        scala: [3.2.1, 2.12.17, 2.13.10]
         java: [temurin@17]
         project: [rootJVM, rootNative]
         exclude:
-          - scala: 3.2.0
+          - scala: 3.2.1
             os: ubuntu-22.04
-          - scala: 3.2.0
+          - scala: 3.2.1
             os: macos-11
-          - scala: 3.2.0
+          - scala: 3.2.1
             os: macos-12
           - scala: 2.12.17
             os: ubuntu-22.04
