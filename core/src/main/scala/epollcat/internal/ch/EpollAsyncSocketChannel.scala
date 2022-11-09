@@ -114,14 +114,15 @@ final class EpollAsyncSocketChannel private (
       handler: CompletionHandler[Integer, _ >: A]
   ): Unit =
     if (readReady) {
+      val position = dst.position()
       val count = dst.remaining()
       val hasArray = dst.hasArray()
       val buf = if (hasArray) dst.array() else new Array[Byte](count)
-      val offset = if (hasArray) dst.arrayOffset() else 0
+      val offset = if (hasArray) dst.arrayOffset() + position else 0
 
       def completed(total: Int): Unit = {
         if (hasArray)
-          dst.position(dst.position() + total)
+          dst.position(position + total)
         else
           dst.put(buf, 0, total)
         handler.completed(total, attachment)
