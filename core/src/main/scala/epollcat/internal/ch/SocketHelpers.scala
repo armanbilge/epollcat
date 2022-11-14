@@ -189,6 +189,9 @@ private[ch] object SocketHelpers {
     !len = sizeof[posix.netinet.in.sockaddr_in6].toUInt
     if (posix.sys.socket.getsockname(fd, addr, len) == -1)
       throw new IOException(s"getsockname: ${errno.errno}")
+    val bytes = new Array[Byte](28)
+    socket.getsockname(fd, bytes.at(0), len)
+    println(bytes.toList)
     if (useIPv4Stack)
       toInet4SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]])
     else

@@ -115,7 +115,7 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
-  test("local and remote addresses") {
+  test("local and remote addresses".only) {
     IOServerSocketChannel.open.evalTap(_.bind(new InetSocketAddress("localhost", 0))).use {
       server =>
         IOSocketChannel.open.use { clientCh =>

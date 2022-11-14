@@ -33,4 +33,6 @@ private[ch] object socket {
   @name("epollcat_accept4") // can remove glue code in SN 0.5
   def accept4(sockfd: CInt, addr: Ptr[sockaddr], addrlen: Ptr[socklen_t], flags: CInt): CInt =
     extern
+
+  def getsockname(sockfd: CInt, addr: Ptr[Byte], addrlen: Ptr[socklen_t]): CInt = extern
 }
