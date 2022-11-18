@@ -182,6 +182,39 @@ private[ch] object SocketHelpers {
       throw new IOException(s"setsockopt: ${errno.errno}")
   }
 
+  /* On macOS, 11 & 12, Intel & Mx, getsockname() appears to return
+   * an IPv4 compatible IPv6 address, such as ::127.0.0.1 where a
+   * contemporary developer would expect an IPv4 mapped IPv6 address
+   * (::FFFF:127.0.0.1). This tends to happen on the first call after
+   * an executable file has started. Additional calls are the expected
+   * IPv4 mapped address.
+   *
+   * For consistent handling both within macOS and across differing
+   * operating systems, always convert IPv4 compatible to IPv4 mapped
+   * IPv6 addresses.
+   *
+   * To understand the conversion check the RFCs,
+   * https://www.rfc-editor.org/rfc/rfc4291.html and related.
+   */
+  private def forceIPv4CompatibleToMapped(sa6: Ptr[posix.netinet.in.sockaddr_in6]): Unit = {
+    def needsConversion(pb: Ptr[Byte]): Boolean = {
+      // Let no pointer go un-munged.
+      val ptrInt = pb.asInstanceOf[Ptr[Int]]
+      val ptrLong = pb.asInstanceOf[Ptr[Long]]
+      val isIPv4Compatible = (ptrInt(2) == 0x00) && (ptrLong(0) == 0x0L)
+
+      if (!isIPv4Compatible) false
+      else ptrLong(1) > 0x100000000000000L // skip IPv6 'any' or loopback
+    }
+
+    val addrBytes = sa6.sin6_addr.at1.at(0).asInstanceOf[Ptr[Byte]]
+
+    if (needsConversion(addrBytes)) {
+      addrBytes(10) = 0xff.toByte
+      addrBytes(11) = 0xff.toByte
+    }
+  }
+
   def getLocalAddress(fd: CInt): SocketAddress = {
     val addr = // allocate enough for an IPv6
       stackalloc[posix.netinet.in.sockaddr_in6]().asInstanceOf[Ptr[posix.sys.socket.sockaddr]]
@@ -191,8 +224,13 @@ private[ch] object SocketHelpers {
       throw new IOException(s"getsockname: ${errno.errno}")
     if (useIPv4Stack)
       toInet4SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in]])
-    else
-      toInet6SocketAddress(addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in6]])
+    else {
+      val sa6 = addr.asInstanceOf[Ptr[posix.netinet.in.sockaddr_in6]]
+      if (LinktimeInfo.isMac)
+        forceIPv4CompatibleToMapped(sa6) // see comments at method
+
+      toInet6SocketAddress(sa6)
+    }
   }
 
   def toInet4SocketAddress(
