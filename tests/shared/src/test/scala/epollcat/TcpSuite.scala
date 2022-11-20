@@ -241,6 +241,18 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
+  test("bind to wildcard and connect") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
+      .evalTap(_.localAddress.flatTap(IO.println))
+      .use { server =>
+        IOSocketChannel.open.use { clientCh =>
+          server.localAddress.flatMap(clientCh.connect(_))
+        }
+      }
+  }
+
   test("IOServerSocketChannel.accept is cancelable") {
     // note that this test targets IOServerSocketChannel#accept,
     // not the underlying AsynchronousSocketChannel#accept implementation
