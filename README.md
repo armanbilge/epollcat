@@ -5,7 +5,7 @@ An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions
 The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
 ```scala
-libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.1"
+libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.2"
 ```
 
 ## FAQ
@@ -18,7 +18,7 @@ There are a couple options:
 
 2. For test frameworks and other unusual situations, you may need to use `EpollRuntime.global`. For example to use with [munit-cats-effect](https://github.com/typelevel/munit-cats-effect):
 ```scala
- override def munitIORuntime = EpollRuntime.global
+override def munitIORuntime = EpollRuntime.global
 ```
 
 ### Should I add this as a dependency to my Scala Native library?
