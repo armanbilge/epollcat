@@ -241,14 +241,14 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
-  test("bind to wildcard and connect") {
+  test("bind to wildcard and connect".only) {
     IOServerSocketChannel
       .open
       .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
       .evalTap(_.localAddress.flatTap(IO.println))
       .use { server =>
         IOSocketChannel.open.use { clientCh =>
-          server.localAddress.flatMap(clientCh.connect(_))
+          server.localAddress.flatMap(addr => clientCh.connect(new InetSocketAddress("0.0.0.0", addr.asInstanceOf[InetSocketAddress].getPort)))
         }
       }
   }
