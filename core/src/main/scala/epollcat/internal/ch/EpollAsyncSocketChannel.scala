@@ -22,6 +22,7 @@ import epollcat.unsafe.EventPollingExecutorScheduler
 
 import java.io.IOException
 import java.net.ConnectException
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 import java.net.SocketOption
@@ -161,10 +162,23 @@ final class EpollAsyncSocketChannel private (
   def connect(remote: SocketAddress): Future[Void] = ???
 
   def connect[A](
-      remote: SocketAddress,
+      remoteAddr: SocketAddress,
       attachment: A,
       handler: CompletionHandler[Void, _ >: A]
   ): Unit = {
+    // See epollcat Issue #92 for a complete discussion of macOS "feature".
+    def forceMacWildcardToLoopback(sa: SocketAddress): SocketAddress = {
+      val isa = sa.asInstanceOf[InetSocketAddress]
+      val bytes = isa.getAddress().getAddress()
+      if ((bytes.length != 16) || (bytes.indexWhere(_ != 0) >= 0)) sa
+      else
+        new InetSocketAddress(InetAddress.getLoopbackAddress(), isa.getPort())
+    }
+
+    val remote =
+      if (!LinktimeInfo.isMac) remoteAddr
+      else forceMacWildcardToLoopback(remoteAddr)
+
     val addrinfo = SocketHelpers.toAddrinfo(remote.asInstanceOf[InetSocketAddress]) match {
       case Left(ex) =>
         return handler.failed(ex, attachment)
