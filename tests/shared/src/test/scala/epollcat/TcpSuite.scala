@@ -181,12 +181,12 @@ class TcpSuite extends EpollcatSuite {
 //      .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
       .use { server =>
         IOSocketChannel.open.use { clientCh =>
-          server.localAddress.flatMap(addr =>
-            clientCh.connect(
-              new InetSocketAddress("0.0.0.0",
-                                    addr
-                                      .asInstanceOf[InetSocketAddress].getPort)
-            ))
+          server
+            .localAddress
+            .flatMap(addr =>
+              clientCh.connect(
+                new InetSocketAddress("0.0.0.0", addr.asInstanceOf[InetSocketAddress].getPort)
+              ))
         }
       }
   }
