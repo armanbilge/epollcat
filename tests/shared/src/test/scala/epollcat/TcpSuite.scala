@@ -222,16 +222,19 @@ class TcpSuite extends EpollcatSuite {
       // because the socket fd was pre-allocated as IPv6.
       .use { server =>
         IOSocketChannel.open.use { clientCh =>
-          if (true) { // IPv6 connect
-            server.localAddress.flatMap(clientCh.connect(_))
-          } else { // IPv4 connect
-            server
-              .localAddress
-              .flatMap(addr =>
-                clientCh.connect(
-                  new InetSocketAddress("0.0.0.0", addr.asInstanceOf[InetSocketAddress].getPort)
-                ))
-          }
+          // IPv6 connect()
+          server.localAddress.flatMap(clientCh.connect(_))
+
+          /* For a guaranteed IPv4 connection, comment previous source line out
+           * and un-comment this block.  Useful for manual testing:
+           *  server
+           *    .localAddress
+           *    .flatMap(addr =>
+           *      clientCh.connect(
+           *        new InetSocketAddress("0.0.0.0",
+           *                addr.asInstanceOf[InetSocketAddress].getPort)
+           *      ))
+           */
         }
       }
   }
