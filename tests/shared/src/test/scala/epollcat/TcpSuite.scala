@@ -178,7 +178,6 @@ class TcpSuite extends EpollcatSuite {
       .evalTap(_.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE))
       // "null" will bind to "wildcard", IPv6 or IPv4 depending on system configuration
       .evalTap(_.bind(null))
-//      .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
       .use { server =>
         IOSocketChannel.open.use { clientCh =>
           server
