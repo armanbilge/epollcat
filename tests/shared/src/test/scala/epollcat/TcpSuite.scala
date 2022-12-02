@@ -210,24 +210,28 @@ class TcpSuite extends EpollcatSuite {
   }
 
   /* Listening to a wildcard is common practice.
-   * 'connecting' to a wildcard address is passing strange.
+   * "connect()'ing" to a wildcard address is passing strange.
    * See epollcat Issue #92 for details.
    */
-  test("bind to IPv4 wildcard and connect") {
+  test("bind to IPv4 wildcard then connect") {
     IOServerSocketChannel
       .open
+      .evalTap(_.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE))
       .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
       // If IPv6 active, IPv4 "0.0.0.0" will have been converted to IPv6 "::0"
       // because the socket fd was pre-allocated as IPv6.
-      .evalTap(_.localAddress.flatTap(IO.println))
       .use { server =>
-        // Active code will give an IPv6 connection.
-        // For an IPv4 connection, use commented out code.
         IOSocketChannel.open.use { clientCh =>
-          // addr => clientCh.connect(new
-          // InetSocketAddress(
-          // "0.0.0.0", addr.asInstanceOf[InetSocketAddress].getPort)))
-          server.localAddress.flatMap(clientCh.connect(_))
+          if (true) { // IPv6 connect
+            server.localAddress.flatMap(clientCh.connect(_))
+          } else { // IPv4 connect
+            server
+              .localAddress
+              .flatMap(addr =>
+                clientCh.connect(
+                  new InetSocketAddress("0.0.0.0", addr.asInstanceOf[InetSocketAddress].getPort)
+                ))
+          }
         }
       }
   }
