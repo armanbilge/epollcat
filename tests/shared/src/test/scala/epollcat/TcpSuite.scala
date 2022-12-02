@@ -171,6 +171,26 @@ class TcpSuite extends EpollcatSuite {
     }
   }
 
+  // epollcat Issue #63
+  test("bind to null (wildcard), then connect") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE))
+      // "null" will bind to "wildcard", IPv6 or IPv4 depending on system configuration
+      .evalTap(_.bind(null))
+//      .evalTap(_.bind(new InetSocketAddress("0.0.0.0", 0)))
+      .use { server =>
+        IOSocketChannel.open.use { clientCh =>
+          server.localAddress.flatMap(addr =>
+            clientCh.connect(
+              new InetSocketAddress("0.0.0.0",
+                                    addr
+                                      .asInstanceOf[InetSocketAddress].getPort)
+            ))
+        }
+      }
+  }
+
   test("ConnectException") {
     IOServerSocketChannel
       .open

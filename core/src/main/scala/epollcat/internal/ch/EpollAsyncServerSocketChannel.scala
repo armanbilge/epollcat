@@ -69,7 +69,15 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
   @stub
   def getOption[T](name: SocketOption[T]): T = ???
 
-  def bind(local: SocketAddress, backlog: Int): AsynchronousServerSocketChannel = {
+  def bind(localArg: SocketAddress, backlog: Int): AsynchronousServerSocketChannel = {
+
+    /* JVM defacto practice of null becoming wildcard.
+     *  on IPv6 systems, 0.0.0.0 will get converted to ::0.
+     */
+    val local =
+      if (localArg != null) localArg
+      else new InetSocketAddress("0.0.0.0", 0)
+
     val addrinfo = SocketHelpers.toAddrinfo(local.asInstanceOf[InetSocketAddress]) match {
       case Left(ex) => throw ex
       case Right(addrinfo) => addrinfo
