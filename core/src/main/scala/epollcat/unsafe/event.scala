@@ -55,9 +55,9 @@ private[unsafe] object eventImplicits {
   import event._
 
   implicit final class kevent64_sOps(kevent64_s: Ptr[kevent64_s]) {
-    def ident: CUnsignedLongInt = !(kevent64_s.asInstanceOf[Ptr[CUnsignedLongInt]])
+    def ident: CUnsignedLongInt = !kevent64_s.asInstanceOf[Ptr[CUnsignedLongInt]]
     def ident_=(ident: CUnsignedLongInt): Unit =
-      !(kevent64_s.asInstanceOf[Ptr[CUnsignedLongInt]]) = ident
+      !kevent64_s.asInstanceOf[Ptr[CUnsignedLongInt]] = ident
 
     def filter: CShort = !(kevent64_s.asInstanceOf[Ptr[CShort]] + 4)
     def filter_=(filter: CShort): Unit =
