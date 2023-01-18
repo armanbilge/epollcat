@@ -47,16 +47,16 @@ private[unsafe] object epollImplicits {
   import epoll._
 
   implicit final class epoll_eventOps(epoll_event: Ptr[epoll_event]) {
-    def events: CUnsignedInt = !(epoll_event.asInstanceOf[Ptr[CUnsignedInt]])
+    def events: CUnsignedInt = !epoll_event.asInstanceOf[Ptr[CUnsignedInt]]
     def events_=(events: CUnsignedInt): Unit =
-      !(epoll_event.asInstanceOf[Ptr[CUnsignedInt]]) = events
+      !epoll_event.asInstanceOf[Ptr[CUnsignedInt]] = events
 
     def data: epoll_data_t =
-      !((epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
-        .asInstanceOf[Ptr[epoll_data_t]])
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
+        .asInstanceOf[Ptr[epoll_data_t]]
     def data_=(data: epoll_data_t): Unit =
-      !((epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
-        .asInstanceOf[Ptr[epoll_data_t]]) = data
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
+        .asInstanceOf[Ptr[epoll_data_t]] = data
   }
 
   implicit val epoll_eventTag: Tag[epoll_event] =
