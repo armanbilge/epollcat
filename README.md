@@ -2,7 +2,7 @@
 
 An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), implemented with the [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html) on Linux and the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue) on macOS.
 
-The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
+The primary goal of this project is to provide implementations for Java I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that it can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/v0.23/docs/integrations.html#ember) and [Skunk](https://tpolecat.github.io/skunk/) to cross-build for Native as well.
 
 ```scala
 libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.2"
