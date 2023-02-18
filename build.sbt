@@ -55,6 +55,7 @@ lazy val tests = crossProject(JVMPlatform, NativePlatform)
       "org.typelevel" %%% "munit-cats-effect" % munitCEVersion % Test
     )
   )
+  .jvmSettings(fork := true)
 
 lazy val example = project
   .in(file("example"))
