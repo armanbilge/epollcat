@@ -211,6 +211,7 @@ object EpollAsyncServerSocketChannel {
       case epoll: EventPollingExecutorScheduler =>
         val fd = SocketHelpers.mkNonBlocking()
         val ch = new EpollAsyncServerSocketChannel(fd)
+        ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE)
         ch.unmonitor = epoll.monitor(fd, reads = true, writes = false)(ch)
         ch
       case _ =>
