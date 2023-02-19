@@ -309,13 +309,12 @@ final class EpollAsyncSocketChannel private (
       unit: TimeUnit,
       attachment: A,
       handler: CompletionHandler[Integer, _ >: A]
-  ): Unit = if (outputShutdown)
-    handler.failed(new ClosedChannelException, attachment)
-  else if (writeReady) {
+  ): Unit = {
     val position = src.position()
     val count = src.remaining()
-
-    if (count > 0) {
+    if (outputShutdown)
+      handler.failed(new ClosedChannelException, attachment)
+    else if (writeReady && count > 0) {
       val hasArray = src.hasArray()
       val buf =
         if (hasArray) src.array()
@@ -353,16 +352,15 @@ final class EpollAsyncSocketChannel private (
       }
 
       go(buf.at(offset), count, 0)
-    } else {
+    } else if (count == 0) {
       handler.completed(0, attachment)
-    }
-  } else {
-    writeCallback = () => {
-      writeCallback = null
-      write(src, timeout, unit, attachment, handler)
+    } else {
+      writeCallback = () => {
+        writeCallback = null
+        write(src, timeout, unit, attachment, handler)
+      }
     }
   }
-
   def getLocalAddress(): SocketAddress = SocketHelpers.getLocalAddress(fd)
 
   @stub
