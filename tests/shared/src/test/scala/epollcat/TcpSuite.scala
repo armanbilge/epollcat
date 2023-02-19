@@ -172,6 +172,24 @@ class TcpSuite extends EpollcatSuite {
       }
   }
 
+  test("read is no-op when position == limit") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
+      .evalMap(_.localAddress)
+      .use { addr =>
+        IOSocketChannel.open.use { ch =>
+          for {
+            _ <- ch.connect(addr)
+            bb <- IO(ByteBuffer.allocate(1))
+            _ <- IO(bb.position(1))
+            read <- ch.read(bb)
+            _ <- IO(assertEquals(read, 0))
+          } yield ()
+        }
+      }
+  }
+
   test("options") {
     IOSocketChannel.open.use { ch =>
       ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>

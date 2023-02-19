@@ -113,10 +113,11 @@ final class EpollAsyncSocketChannel private (
       unit: TimeUnit,
       attachment: A,
       handler: CompletionHandler[Integer, _ >: A]
-  ): Unit =
-    if (readReady) {
-      val position = dst.position()
-      val count = dst.remaining()
+  ): Unit = {
+    val position = dst.position()
+    val count = dst.remaining()
+    if (readReady && count > 0) {
+
       val hasArray = dst.hasArray()
       val buf = if (hasArray) dst.array() else new Array[Byte](count)
       val offset = if (hasArray) dst.arrayOffset() + position else 0
@@ -151,12 +152,15 @@ final class EpollAsyncSocketChannel private (
       }
 
       go(buf.at(offset), count, 0)
+    } else if (count == 0) {
+      handler.completed(0, attachment)
     } else {
       readCallback = () => {
         readCallback = null
         read(dst, timeout, unit, attachment, handler)
       }
     }
+  }
 
   @stub
   def connect(remote: SocketAddress): Future[Void] = ???
