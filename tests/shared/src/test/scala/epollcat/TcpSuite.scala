@@ -311,4 +311,19 @@ class TcpSuite extends EpollcatSuite {
     IOServerSocketChannel.open.use_
   }
 
+  test("closing/re-opening a server does not throw BindException: Address already in use") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
+      .use { server =>
+        server.localAddress.flatTap { address =>
+          val connect =
+            IOSocketChannel.open.evalTap(_.connect(address)).surround(IO.sleep(1.second))
+          val accept = server.accept.surround(IO.sleep(1.second))
+          connect.both(accept).void
+        }
+      }
+      .flatMap(address => IOServerSocketChannel.open.evalTap(_.bind(address)).use_)
+  }
+
 }
