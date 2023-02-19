@@ -154,7 +154,7 @@ class TcpSuite extends EpollcatSuite {
       }
   }
 
-  test("write is no-op when position == limit".only) {
+  test("write is no-op when position == limit") {
     IOServerSocketChannel
       .open
       .evalTap(_.bind(new InetSocketAddress("localhost", 0)))

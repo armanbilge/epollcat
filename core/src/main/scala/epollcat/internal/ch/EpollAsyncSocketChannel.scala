@@ -311,43 +311,47 @@ final class EpollAsyncSocketChannel private (
     val position = src.position()
     val count = src.remaining()
 
-    val hasArray = src.hasArray()
-    val buf =
-      if (hasArray) src.array()
-      else {
-        val buf = new Array[Byte](count)
-        src.get(buf)
-        buf
+    if (count > 0) {
+      val hasArray = src.hasArray()
+      val buf =
+        if (hasArray) src.array()
+        else {
+          val buf = new Array[Byte](count)
+          src.get(buf)
+          buf
+        }
+      val offset = if (hasArray) src.arrayOffset() + position else 0
+
+      def completed(total: Int): Unit = {
+        src.position(position + total)
+        handler.completed(total, attachment)
       }
-    val offset = if (hasArray) src.arrayOffset() + position else 0
 
-    def completed(total: Int): Unit = {
-      src.position(position + total)
-      handler.completed(total, attachment)
+      @tailrec
+      def go(buf: Ptr[Byte], count: Int, total: Int): Unit = {
+        val wrote =
+          if (LinktimeInfo.isLinux)
+            posix.sys.socket.send(fd, buf, count.toULong, socket.MSG_NOSIGNAL).toInt
+          else
+            posix.unistd.write(fd, buf, count.toULong)
+
+        if (wrote == -1) {
+          val e = errno.errno
+          if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {
+            writeReady = false
+            completed(total)
+          } else
+            handler.failed(new RuntimeException(s"write: $e"), attachment)
+        } else if (wrote < count)
+          go(buf + wrote.toLong, count - wrote, total + wrote)
+        else // wrote == count
+          completed(total + wrote)
+      }
+
+      go(buf.at(offset), count, 0)
+    } else {
+      handler.completed(0, attachment)
     }
-
-    @tailrec
-    def go(buf: Ptr[Byte], count: Int, total: Int): Unit = {
-      val wrote =
-        if (LinktimeInfo.isLinux)
-          posix.sys.socket.send(fd, buf, count.toULong, socket.MSG_NOSIGNAL).toInt
-        else
-          posix.unistd.write(fd, buf, count.toULong)
-
-      if (wrote == -1) {
-        val e = errno.errno
-        if (e == posix.errno.EAGAIN || e == posix.errno.EWOULDBLOCK) {
-          writeReady = false
-          completed(total)
-        } else
-          handler.failed(new RuntimeException(s"write: $e"), attachment)
-      } else if (wrote < count)
-        go(buf + wrote.toLong, count - wrote, total + wrote)
-      else // wrote == count
-        completed(total + wrote)
-    }
-
-    go(buf.at(offset), count, 0)
   } else {
     writeCallback = () => {
       writeCallback = null
