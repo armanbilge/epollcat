@@ -154,6 +154,24 @@ class TcpSuite extends EpollcatSuite {
       }
   }
 
+  test("write is no-op when position == limit".only) {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
+      .evalMap(_.localAddress)
+      .use { addr =>
+        IOSocketChannel.open.use { ch =>
+          for {
+            _ <- ch.connect(addr)
+            bb <- IO(ByteBuffer.allocate(1))
+            _ <- IO(bb.position(1))
+            wrote <- ch.write(bb)
+            _ <- IO(assertEquals(wrote, 0))
+          } yield ()
+        }
+      }
+  }
+
   test("options") {
     IOSocketChannel.open.use { ch =>
       ch.setOption(StandardSocketOptions.SO_REUSEADDR, java.lang.Boolean.TRUE) *>
