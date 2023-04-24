@@ -1,6 +1,6 @@
 native_arm_task:
   arm_container:
-    dockerfile: .cirrus/Dockerfile
+    dockerfile: .cirrus/Dockerfile.arm
     cpu: 2
     memory: 8G
   matrix:
@@ -13,7 +13,7 @@ native_arm_task:
 
 native_macos_task:
   macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+    dockerfile: .cirrus/Dockerfile.macos
     cpu: 2
     memory: 8G
   matrix:
