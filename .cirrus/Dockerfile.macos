@@ -1,3 +1,0 @@
-FROM ghcr.io/cirruslabs/macos-ventura-base:latest
-
-RUN brew install sbt
