@@ -1,0 +1,12 @@
+native_arm_task:
+  arm_container:
+    dockerfile: .cirrus/Dockerfile
+    cpu: 2
+    memory: 8G
+  matrix:
+    - name: Native ARM 2.12
+      script: sbt '++ 2.12' testsNative/test
+    - name: Native ARM 2.13
+      script: sbt '++ 2.13' testsNative/test
+    - name: Native ARM 3
+      script: sbt '++ 3' testsNative/test
