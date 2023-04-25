@@ -39,6 +39,7 @@ private[unsafe] final class EpollExecutorScheduler private (
     Collections.newSetFromMap(new IdentityHashMap)
 
   def poll(timeout: Duration): Boolean = {
+    println("starting poll")
     val timeoutIsInfinite = timeout == Duration.Inf
     val noCallbacks = callbacks.isEmpty()
 
@@ -49,18 +50,24 @@ private[unsafe] final class EpollExecutorScheduler private (
 
       val events = stackalloc[epoll_event](maxEvents.toUInt)
 
+      println("about to wait")
       val triggeredEvents = epoll_wait(epfd, events, maxEvents, timeoutMillis)
+      println("waited")
 
       if (triggeredEvents >= 0) {
         var i = 0
         while (i < triggeredEvents) {
           val event = events + i.toLong
+          println("retrieving callback")
           val cb = EventNotificationCallback.fromPtr(event.data)
+          println("retrievied callback")
           try {
             val e = event.events.toInt
             val readReady = (e & EPOLLIN) != 0
             val writeReady = (e & EPOLLOUT) != 0
+            println("calling callback")
             cb.notifyEvents(readReady, writeReady)
+            println("called callback")
           } catch {
             case NonFatal(ex) => reportFailure(ex)
           }
@@ -81,9 +88,11 @@ private[unsafe] final class EpollExecutorScheduler private (
       (EPOLLET | (if (reads) EPOLLIN else 0) | (if (writes) EPOLLOUT else 0)).toUInt
     event.data = EventNotificationCallback.toPtr(cb)
 
+    println("adding fd to epoll")
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, event) != 0)
       throw new RuntimeException(s"epoll_ctl: ${errno.errno}")
     callbacks.add(cb)
+    println("added fd to epoll")
 
     () => {
       if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, null) != 0)

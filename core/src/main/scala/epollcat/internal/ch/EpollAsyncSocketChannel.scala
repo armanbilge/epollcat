@@ -189,7 +189,7 @@ final class EpollAsyncSocketChannel private (
 
     println("about to connect")
     val conRet = posix.sys.socket.connect(fd, addrinfo.ai_addr, addrinfo.ai_addrlen)
-    println("connected")
+    println("connected rtned")
     posix.netdb.freeaddrinfo(addrinfo)
     println("free addr info")
 
