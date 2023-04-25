@@ -47,8 +47,8 @@ class TcpSuite extends EpollcatSuite {
 
   // override def munitIOTimeout = 20.seconds
 
-  // def decode(bb: ByteBuffer): String =
-  //   StandardCharsets.UTF_8.decode(bb).toString()
+  def decode(bb: ByteBuffer): String =
+    StandardCharsets.UTF_8.decode(bb).toString()
 
   test("HTTP echo") {
     val address = new InetSocketAddress(InetAddress.getByName("postman-echo.com"), 80)
