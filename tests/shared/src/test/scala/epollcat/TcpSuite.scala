@@ -50,27 +50,27 @@ class TcpSuite extends EpollcatSuite {
   // def decode(bb: ByteBuffer): String =
   //   StandardCharsets.UTF_8.decode(bb).toString()
 
-  // test("HTTP echo") {
-  //   val address = new InetSocketAddress(InetAddress.getByName("postman-echo.com"), 80)
-  //   val bytes =
-  //     """|GET /get HTTP/1.1
-  //        |Host: postman-echo.com
-  //        |
-  //        |""".stripMargin.getBytes()
+  test("HTTP echo") {
+    val address = new InetSocketAddress(InetAddress.getByName("postman-echo.com"), 80)
+    val bytes =
+      """|GET /get HTTP/1.1
+         |Host: postman-echo.com
+         |
+         |""".stripMargin.getBytes()
 
-  //   IOSocketChannel.open.use { ch =>
-  //     for {
-  //       _ <- ch.connect(address)
-  //       wrote <- ch.write(ByteBuffer.wrap(bytes))
-  //       _ <- IO(assertEquals(wrote, bytes.length))
-  //       bb <- IO(ByteBuffer.allocate(1024))
-  //       readed <- ch.read(bb)
-  //       _ <- IO(assert(clue(readed) > 0))
-  //       res <- IO(bb.position(0)) *> IO(decode(bb))
-  //       _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
-  //     } yield ()
-  //   }
-  // }
+    IOSocketChannel.open.use { ch =>
+      for {
+        _ <- ch.connect(address)
+        wrote <- ch.write(ByteBuffer.wrap(bytes))
+        _ <- IO(assertEquals(wrote, bytes.length))
+        bb <- IO(ByteBuffer.allocate(1024))
+        readed <- ch.read(bb)
+        _ <- IO(assert(clue(readed) > 0))
+        res <- IO(bb.position(0)) *> IO(decode(bb))
+        _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
+      } yield ()
+    }
+  }
 
   // test("server-client ping-pong") {
   //   (
