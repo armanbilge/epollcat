@@ -179,14 +179,19 @@ final class EpollAsyncSocketChannel private (
       if (!LinktimeInfo.isMac) remoteAddr
       else forceMacWildcardToLoopback(remoteAddr)
 
+    println("about to addr info")
     val addrinfo = SocketHelpers.toAddrinfo(remote.asInstanceOf[InetSocketAddress]) match {
       case Left(ex) =>
         return handler.failed(ex, attachment)
       case Right(addrinfo) => addrinfo
     }
+    println("addrinfoed")
 
+    println("about to connect")
     val conRet = posix.sys.socket.connect(fd, addrinfo.ai_addr, addrinfo.ai_addrlen)
+    println("connected")
     posix.netdb.freeaddrinfo(addrinfo)
+    println("free addr info")
 
     if (conRet == -1 && errno.errno != posix.errno.EINPROGRESS) {
       val ex = errno.errno match {
@@ -198,6 +203,7 @@ final class EpollAsyncSocketChannel private (
     }
 
     val callback: Runnable = () => {
+      println("connected")
       writeCallback = null
       val optval = stackalloc[CInt]()
       val optlen = stackalloc[posix.sys.socket.socklen_t]()
