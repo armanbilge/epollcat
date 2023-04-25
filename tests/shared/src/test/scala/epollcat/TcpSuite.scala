@@ -59,17 +59,18 @@ class TcpSuite extends EpollcatSuite {
          |""".stripMargin.getBytes()
 
     IOSocketChannel.open.use { ch =>
-      // for {
-      //   _ <- ch.connect(address)
-      //   wrote <- ch.write(ByteBuffer.wrap(bytes))
-      //   _ <- IO(assertEquals(wrote, bytes.length))
-      //   bb <- IO(ByteBuffer.allocate(1024))
-      //   readed <- ch.read(bb)
-      //   _ <- IO(assert(clue(readed) > 0))
-      //   res <- IO(bb.position(0)) *> IO(decode(bb))
-      //   _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
-      // } yield ()
-      IO.unit
+      for {
+        _ <- IO.println("connecting")
+        _ <- ch.connect(address)
+        _ <- IO.println("connected")
+        // wrote <- ch.write(ByteBuffer.wrap(bytes))
+        // _ <- IO(assertEquals(wrote, bytes.length))
+        // bb <- IO(ByteBuffer.allocate(1024))
+        // readed <- ch.read(bb)
+        // _ <- IO(assert(clue(readed) > 0))
+        // res <- IO(bb.position(0)) *> IO(decode(bb))
+        // _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
+      } yield ()
     }
   }
 
