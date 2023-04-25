@@ -56,9 +56,11 @@ private[unsafe] final class EpollExecutorScheduler private (
 
       if (triggeredEvents >= 0) {
         var i = 0
+        println(s"triggered events $triggeredEvents")
         while (i < triggeredEvents) {
           val event = events + i.toLong
           println("retrieving callback")
+          println(event.data)
           val cb = EventNotificationCallback.fromPtr(event.data)
           println("retrievied callback")
           try {
