@@ -28,10 +28,10 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-20.04
-          - ubuntu-22.04
-          - macos-11
-          - macos-12
+              - ubuntu-20.04
+              - ubuntu-22.04
+              - macos-11
+              - macos-12
         scala: [3.2.2, 2.12.17, 2.13.10]
         java: [temurin@17]
         project: [rootJVM, rootNative]
@@ -131,7 +131,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        scala: [2.13.10]
         java: [temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
@@ -240,4 +239,4 @@ jobs:
           (echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)
 
       - name: Publish
-        run: sbt '++ ${{ matrix.scala }}' tlCiRelease
+        run: sbt tlCiRelease
