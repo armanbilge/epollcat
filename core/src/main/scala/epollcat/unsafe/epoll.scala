@@ -40,11 +40,15 @@ private[unsafe] object epoll {
   def epoll_wait(epfd: Int, events: Ptr[epoll_event], maxevents: Int, timeout: Int): Int =
     extern
 
+  def scalanative_epoll_data_offset(): Int = extern
+
 }
 
 private[unsafe] object epollImplicits {
 
   import epoll._
+
+  val DATA_OFFSET = epoll.scalanative_epoll_data_offset()
 
   implicit final class epoll_eventOps(epoll_event: Ptr[epoll_event]) {
     def events: CUnsignedInt = !epoll_event.asInstanceOf[Ptr[CUnsignedInt]]
@@ -52,10 +56,10 @@ private[unsafe] object epollImplicits {
       !epoll_event.asInstanceOf[Ptr[CUnsignedInt]] = events
 
     def data: epoll_data_t =
-      !(epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET)
         .asInstanceOf[Ptr[epoll_data_t]]
     def data_=(data: epoll_data_t): Unit =
-      !(epoll_event.asInstanceOf[Ptr[Byte]] + sizeof[CUnsignedInt])
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET)
         .asInstanceOf[Ptr[epoll_data_t]] = data
   }
 
