@@ -48,7 +48,7 @@ private[unsafe] object epollImplicits {
 
   import epoll._
 
-  val DATA_OFFSET = epoll.scalanative_epoll_data_offset()
+  val DATA_OFFSET = epoll.scalanative_epoll_data_offset().toLong
 
   implicit final class epoll_eventOps(epoll_event: Ptr[epoll_event]) {
     def events: CUnsignedInt = !epoll_event.asInstanceOf[Ptr[CUnsignedInt]]
