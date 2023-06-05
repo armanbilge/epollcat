@@ -56,11 +56,10 @@ private[unsafe] object epollImplicits {
       !epoll_event.asInstanceOf[Ptr[CUnsignedInt]] = events
 
     def data: epoll_data_t =
-      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET)
-        .asInstanceOf[Ptr[epoll_data_t]]
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET).asInstanceOf[Ptr[epoll_data_t]]
     def data_=(data: epoll_data_t): Unit =
-      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET)
-        .asInstanceOf[Ptr[epoll_data_t]] = data
+      !(epoll_event.asInstanceOf[Ptr[Byte]] + DATA_OFFSET).asInstanceOf[Ptr[epoll_data_t]] =
+        data
   }
 
   implicit val epoll_eventTag: Tag[epoll_event] =
