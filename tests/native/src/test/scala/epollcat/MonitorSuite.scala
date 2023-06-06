@@ -24,27 +24,38 @@ import epollcat.unsafe.EpollRuntime
 
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
+import scala.scalanative.posix.fcntl._
 import scala.scalanative.posix.unistd._
 
 class MonitorSuite extends EpollcatSuite {
 
   class Pipe private (val readFd: Int, val writeFd: Int)
   object Pipe {
-    val make: Resource[IO, Pipe] = Resource.make {
-      IO {
-        val fildes = stackalloc[CInt](2)
-        if (pipe(fildes) != 0) {
-          throw new Exception("Failed to create pipe")
-        } else {
-          new Pipe(fildes(0), fildes(1))
+    val make: Resource[IO, Pipe] =
+      Resource
+        .make {
+          IO {
+            val fildes = stackalloc[CInt](2)
+            if (pipe(fildes) != 0) {
+              throw new Exception("Failed to create pipe")
+            } else {
+              new Pipe(fildes(0), fildes(1))
+            }
+          }
+        }(pipe =>
+          IO {
+            close(pipe.readFd)
+            close(pipe.writeFd)
+            ()
+          })
+        .evalTap { pipe =>
+          IO {
+            if (fcntl(pipe.readFd, F_SETFL, O_NONBLOCK) != 0)
+              throw new Exception("fcntl")
+            if (fcntl(pipe.writeFd, F_SETFL, O_NONBLOCK) != 0)
+              throw new Exception("fcntl")
+          }
         }
-      }
-    }(pipe =>
-      IO {
-        close(pipe.readFd)
-        close(pipe.writeFd)
-        ()
-      })
   }
 
   test("monitor a pipe") {
