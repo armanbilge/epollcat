@@ -1,0 +1,31 @@
+native_arm_task:
+  arm_container:
+    dockerfile: .cirrus/Dockerfile
+    cpu: 2
+    memory: 8G
+  matrix:
+    - name: Native ARM 2.12
+      script: sbt '++ 2.12' testsNative/test
+    - name: Native ARM 2.13
+      script: sbt '++ 2.13' testsNative/test
+    - name: Native ARM 3
+      script: sbt '++ 3' testsNative/test
+
+native_macos_task:
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+    cpu: 2
+    memory: 8G
+  matrix:
+    - name: Native Apple Silicon 2.12
+      script: 
+        - brew install sbt
+        - sbt '++ 2.12' testsNative/test
+    - name: Native Apple Silicon 2.13
+      script:
+        - brew install sbt
+        - sbt '++ 2.13' testsNative/test
+    - name: Native Apple Silicon 3
+      script:
+        - brew install sbt
+        - sbt '++ 3' testsNative/test

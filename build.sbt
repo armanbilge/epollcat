@@ -18,6 +18,12 @@ ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
 
+ThisBuild / githubWorkflowPublishPreamble +=
+  WorkflowStep.Use(
+    UseRef.Public("typelevel", "await-cirrus", "main"),
+    name = Some("Wait for Cirrus CI")
+  )
+
 ThisBuild / githubWorkflowBuild ++= Seq(
   WorkflowStep.Sbt(
     List("example/run"),
