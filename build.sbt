@@ -6,7 +6,7 @@ ThisBuild / developers += tlGitHubDev("armanbilge", "Arman Bilge")
 ThisBuild / startYear := Some(2022)
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.3.0", "2.12.17", "2.13.10")
+ThisBuild / crossScalaVersions := Seq("3.3.0", "2.12.17", "2.13.11")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / githubWorkflowOSes :=
@@ -32,7 +32,7 @@ ThisBuild / githubWorkflowBuild ++= Seq(
   )
 )
 
-val catsEffectVersion = "3.5.0"
+val catsEffectVersion = "3.5.1"
 val munitCEVersion = "2.0.0-M3"
 
 lazy val root = tlCrossRootProject.aggregate(core, tests, example)
