@@ -13,7 +13,7 @@ ThisBuild / githubWorkflowOSes :=
   Seq("ubuntu-20.04", "ubuntu-22.04", "macos-11", "macos-12")
 ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   for {
-    scala <- crossScalaVersions.value.init
+    scala <- List("3", "2.12")
     os <- githubWorkflowOSes.value.tail
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
