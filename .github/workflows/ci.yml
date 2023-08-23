@@ -35,6 +35,19 @@ jobs:
         scala: [3, 2.12, 2.13]
         java: [temurin@17]
         project: [rootJVM, rootNative]
+        exclude:
+          - scala: 3
+            os: ubuntu-22.04
+          - scala: 3
+            os: macos-11
+          - scala: 3
+            os: macos-12
+          - scala: 2.12
+            os: ubuntu-22.04
+          - scala: 2.12
+            os: macos-11
+          - scala: 2.12
+            os: macos-12
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
