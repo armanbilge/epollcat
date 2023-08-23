@@ -67,7 +67,7 @@ class TcpSuite extends EpollcatSuite {
         readed <- ch.read(bb)
         _ <- IO(assert(clue(readed) > 0))
         res <- IO(bb.position(0)) *> IO(decode(bb))
-        _ <- IO(assert(clue(res).startsWith("HTTP/1.1 200 OK")))
+        _ <- IO(assert(clue(res).startsWith("HTTP/1.1 301 Moved Permanently")))
       } yield ()
     }
   }

@@ -16,10 +16,13 @@
 
 package epollcat.unsafe
 
+import org.typelevel.scalaccompat.annotation._
+
 import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.unsafe._
 
 @extern
+@nowarn212("cat=unused")
 private[unsafe] object epoll {
 
   final val EPOLL_CTL_ADD = 1

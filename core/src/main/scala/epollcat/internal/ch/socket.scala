@@ -16,10 +16,13 @@
 
 package epollcat.internal.ch
 
+import org.typelevel.scalaccompat.annotation._
+
 import scala.scalanative.unsafe._
 import scala.scalanative.posix.sys.socket._
 
 @extern
+@nowarn212("cat=unused")
 private[ch] object socket {
   final val SOCK_NONBLOCK = 2048 // only in Linux and FreeBSD, but not macOS
 

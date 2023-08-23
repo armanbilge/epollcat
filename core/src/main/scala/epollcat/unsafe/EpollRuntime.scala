@@ -51,6 +51,7 @@ object EpollRuntime {
       installGlobal {
         EpollRuntime()
       }
+      ()
     }
 
     _global

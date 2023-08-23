@@ -16,10 +16,13 @@
 
 package epollcat.unsafe
 
+import org.typelevel.scalaccompat.annotation._
+
 import scala.scalanative.posix.time._
 import scala.scalanative.unsafe._
 
 @extern
+@nowarn212("cat=unused")
 private[unsafe] object event {
   // Derived from https://opensource.apple.com/source/xnu/xnu-7195.81.3/bsd/sys/event.h.auto.html
 

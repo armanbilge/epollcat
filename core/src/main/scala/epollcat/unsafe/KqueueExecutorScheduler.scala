@@ -129,10 +129,14 @@ private[unsafe] final class KqueueExecutorScheduler(
         EvAdd(fd, EVFILT_WRITE, cb)
       else null
 
-    if (readEvent != null)
+    if (readEvent != null) {
       changes.add(readEvent)
-    if (writeEvent != null)
+      ()
+    }
+    if (writeEvent != null) {
       changes.add(writeEvent)
+      ()
+    }
 
     callbacks(fd.toLong) = cb
 

@@ -7,13 +7,14 @@ ThisBuild / startYear := Some(2022)
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.3.0", "2.12.18", "2.13.11")
+ThisBuild / tlJdkRelease := None
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / githubWorkflowOSes :=
   Seq("ubuntu-20.04", "ubuntu-22.04", "macos-11", "macos-12")
 ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   for {
-    scala <- crossScalaVersions.value.init
+    scala <- List("3", "2.12")
     os <- githubWorkflowOSes.value.tail
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
