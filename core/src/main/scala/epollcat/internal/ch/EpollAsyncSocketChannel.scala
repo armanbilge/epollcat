@@ -216,9 +216,8 @@ final class EpollAsyncSocketChannel private (
             optval.asInstanceOf[Ptr[Byte]],
             optlen
           ) == -1)
-        return handler.failed(new IOException(s"getsockopt: ${errno.errno}"), attachment)
-
-      if (!optval == 0) {
+        handler.failed(new IOException(s"getsockopt: ${errno.errno}"), attachment)
+      else if (!optval == 0) {
         remoteAddress = remote
         handler.completed(null, attachment)
       } else {
