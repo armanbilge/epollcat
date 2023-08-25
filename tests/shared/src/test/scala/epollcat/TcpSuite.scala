@@ -362,7 +362,7 @@ class TcpSuite extends EpollcatSuite {
       .flatMap(address => IOServerSocketChannel.open.evalTap(_.bind(address)).use_)
   }
 
-  test("shutdown ignores ENOTCONN".only) {
+  test("shutdown ignores ENOTCONN") {
     IOServerSocketChannel
       .open
       .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
