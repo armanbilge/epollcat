@@ -362,4 +362,22 @@ class TcpSuite extends EpollcatSuite {
       .flatMap(address => IOServerSocketChannel.open.evalTap(_.bind(address)).use_)
   }
 
+  test("shutdown ignores ENOTCONN") {
+    IOServerSocketChannel
+      .open
+      .evalTap(_.bind(new InetSocketAddress("localhost", 0)))
+      .use { server =>
+        server.localAddress.flatTap { address =>
+          val connect =
+            IOSocketChannel.open.evalTap(_.connect(address)).surround(IO.sleep(100.millis))
+          val accept = server.accept.use { ch =>
+            ch.write(ByteBuffer.wrap("hello".getBytes)) *>
+              IO.sleep(1.second) *> ch.shutdownInput *> ch.shutdownOutput
+          }
+          connect.both(accept).void
+        }
+      }
+      .flatMap(address => IOServerSocketChannel.open.evalTap(_.bind(address)).use_)
+  }
+
 }

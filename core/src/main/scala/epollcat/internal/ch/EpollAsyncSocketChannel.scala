@@ -38,6 +38,7 @@ import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.posix
+import scala.scalanative.posix.errno._
 import scala.scalanative.posix.netdbOps._
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
@@ -79,14 +80,14 @@ final class EpollAsyncSocketChannel private (
   def isOpen = _isOpen
 
   def shutdownInput(): AsynchronousSocketChannel = {
-    if (posix.sys.socket.shutdown(fd, 0) == -1)
+    if (posix.sys.socket.shutdown(fd, 0) == -1 && errno.errno != ENOTCONN)
       throw new IOException(s"shutdown: ${errno.errno}")
     this
   }
 
   def shutdownOutput(): AsynchronousSocketChannel = {
     outputShutdown = true
-    if (posix.sys.socket.shutdown(fd, 1) == -1)
+    if (posix.sys.socket.shutdown(fd, 1) == -1 && errno.errno != ENOTCONN)
       throw new IOException(s"shutdown: ${errno.errno}")
     this
   }
