@@ -6,7 +6,7 @@ ThisBuild / developers += tlGitHubDev("armanbilge", "Arman Bilge")
 ThisBuild / startYear := Some(2022)
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.3.0", "2.12.18", "2.13.11")
+ThisBuild / crossScalaVersions := Seq("3.3.1", "2.12.18", "2.13.11")
 ThisBuild / tlJdkRelease := None
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
