@@ -72,7 +72,7 @@ private[ch] object SocketHelpers {
         if (rtn == 0) {
           // should never happen, but check anyways
           java.util.Objects.requireNonNull(!addrinfo)
-          (!addrinfo).ai_family == posix.sys.socket.AF_INET6
+          !addrinfo.ai_family == posix.sys.socket.AF_INET6
         } else {
 
           if (rtn == posix.netdb.EAI_NONAME) { // expected on IPv4 & OK
