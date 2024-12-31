@@ -35,7 +35,7 @@ class MonitorSuite extends EpollcatSuite {
       Resource
         .make {
           IO {
-            val fildes = stackalloc[CInt](2)
+            val fildes = stackalloc[CInt](2.toUInt)
             if (pipe(fildes) != 0) {
               throw new Exception("Failed to create pipe")
             } else {
