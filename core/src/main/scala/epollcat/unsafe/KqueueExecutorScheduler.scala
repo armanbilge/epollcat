@@ -46,7 +46,7 @@ private[unsafe] final class KqueueExecutorScheduler(
     val noCallbacks = callbacks.isEmpty
 
     // pre-process the changes to filter canceled ones
-    val changelist = stackalloc[kevent64_s](changes.size().toLong)
+    val changelist = stackalloc[kevent64_s](changes.size().toUInt)
     var change = changelist
     var changeCount = 0
     while (!changes.isEmpty()) {
@@ -75,7 +75,7 @@ private[unsafe] final class KqueueExecutorScheduler(
           ts
         }
 
-      val eventlist = stackalloc[kevent64_s](maxEvents.toLong)
+      val eventlist = stackalloc[kevent64_s](maxEvents.toUInt)
       val flags = (if (timeoutIsZero) KEVENT_FLAG_IMMEDIATE else KEVENT_FLAG_NONE).toUInt
       val triggeredEvents =
         kevent64(kqfd, changelist, changeCount, eventlist, maxEvents, flags, timeoutSpec)
