@@ -4,14 +4,13 @@ ThisBuild / organization := "com.armanbilge"
 ThisBuild / organizationName := "Arman Bilge"
 ThisBuild / developers += tlGitHubDev("armanbilge", "Arman Bilge")
 ThisBuild / startYear := Some(2022)
-ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.3.1", "2.12.18", "2.13.12")
+ThisBuild / crossScalaVersions := Seq("3.3.4", "2.12.20", "2.13.15")
 ThisBuild / tlJdkRelease := None
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / githubWorkflowOSes :=
-  Seq("ubuntu-20.04", "ubuntu-22.04", "macos-11", "macos-12")
+  Seq("ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "macos-13", "macos-14")
 ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   for {
     scala <- List("3", "2.12")
@@ -33,8 +32,8 @@ ThisBuild / githubWorkflowBuild ++= Seq(
   )
 )
 
-val catsEffectVersion = "3.5.2"
-val munitCEVersion = "2.0.0-M4"
+val catsEffectVersion = "3.5.7"
+val munitCEVersion = "2.0.0"
 
 lazy val root = tlCrossRootProject.aggregate(core, tests, example)
 
