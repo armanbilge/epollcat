@@ -9,20 +9,21 @@ ThisBuild / crossScalaVersions := Seq("3.3.4", "2.12.20", "2.13.16")
 ThisBuild / tlJdkRelease := None
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
-ThisBuild / githubWorkflowOSes :=
-  Seq("ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "macos-13", "macos-14")
+ThisBuild / githubWorkflowOSes := Seq(
+  "ubuntu-20.04",
+  "ubuntu-22.04",
+  "ubuntu-22.04-arm",
+  "ubuntu-24.04",
+  "ubuntu-24.04-arm",
+  "macos-13",
+  "macos-14"
+)
 ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   for {
     scala <- List("3", "2.12")
-    os <- githubWorkflowOSes.value.tail
+    os <- githubWorkflowOSes.value.toSet -- Set("ubuntu-24.04", "ubuntu-24.04-arm", "macos-14")
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
-
-ThisBuild / githubWorkflowPublishPreamble +=
-  WorkflowStep.Use(
-    UseRef.Public("typelevel", "await-cirrus", "main"),
-    name = Some("Wait for Cirrus CI")
-  )
 
 ThisBuild / githubWorkflowBuild ++= Seq(
   WorkflowStep.Sbt(
