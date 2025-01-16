@@ -25,6 +25,9 @@ ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
 
+import com.github.sbt.git.SbtGit.GitKeys._
+ThisBuild / useConsoleForROGit := true
+
 ThisBuild / githubWorkflowBuild ++= Seq(
   WorkflowStep.Sbt(
     List("example/run"),
