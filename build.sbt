@@ -14,14 +14,13 @@ ThisBuild / githubWorkflowOSes := Seq(
   "ubuntu-22.04",
   "ubuntu-22.04-arm",
   "ubuntu-24.04",
-  "ubuntu-24.04-arm",
   "macos-13",
   "macos-14"
 )
 ThisBuild / githubWorkflowBuildMatrixExclusions ++= {
   for {
     scala <- List("3", "2.12")
-    os <- githubWorkflowOSes.value.toSet -- Set("ubuntu-24.04", "ubuntu-24.04-arm", "macos-14")
+    os <- githubWorkflowOSes.value.toSet -- Set("ubuntu-24.04", "macos-14")
   } yield MatrixExclude(Map("scala" -> scala, "os" -> os))
 }
 
