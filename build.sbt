@@ -35,7 +35,7 @@ ThisBuild / githubWorkflowBuild ++= Seq(
   )
 )
 
-val catsEffectVersion = "3.5.7"
+val catsEffectVersion = "3.6.0"
 val munitCEVersion = "2.0.0"
 
 lazy val root = tlCrossRootProject.aggregate(core, tests, example)
