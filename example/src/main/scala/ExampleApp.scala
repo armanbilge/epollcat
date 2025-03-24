@@ -23,6 +23,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
+@deprecated("test deprecated features", "forever")
 object ExampleApp extends EpollApp.Simple {
 
   def decode(bb: ByteBuffer): String =

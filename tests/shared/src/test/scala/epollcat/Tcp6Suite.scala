@@ -74,7 +74,7 @@ object NetworkProtocolInfo {
  *    Naming tests can give a clue that the real work is being done
  *    and by whom, but the interleaving is, IMO, a defect.
  */
-
+@deprecated("test deprecated features", "forever")
 class Tcp6NotPresentSuite extends EpollcatSuite {
   override def munitIOTimeout = 10.seconds
 
@@ -106,6 +106,7 @@ class Tcp6NotPresentSuite extends EpollcatSuite {
   }
 }
 
+@deprecated("test deprecated features", "forever")
 class Tcp6Suite extends EpollcatSuite {
 
   /* 2022-09-12

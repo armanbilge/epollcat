@@ -22,6 +22,7 @@ import cats.effect.unsafe.Scheduler
 
 import scala.concurrent.ExecutionContext
 
+@deprecated("Upgrade to Cats Effect v3.6.0 and use IORuntime", "0.1.7")
 object EpollRuntime {
 
   def apply(): IORuntime = apply(IORuntimeConfig())

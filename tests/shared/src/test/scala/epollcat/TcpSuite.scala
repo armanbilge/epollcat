@@ -43,6 +43,7 @@ import scala.concurrent.duration._
  * possibly being configured to returning IPv6 addresses before IPv4 ones,
  */
 
+@deprecated("test deprecated features", "forever")
 class TcpSuite extends EpollcatSuite {
 
   override def munitIOTimeout = 20.seconds
