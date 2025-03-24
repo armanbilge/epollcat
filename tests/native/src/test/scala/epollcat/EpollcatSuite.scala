@@ -19,8 +19,8 @@ package epollcat
 import epollcat.unsafe.EpollRuntime
 import munit.CatsEffectSuite
 
+@deprecated("test deprecated features", "forever")
 trait EpollcatSuite extends CatsEffectSuite {
-  @deprecated("test deprecated features", "forever")
   override def munitIORuntime = EpollRuntime.global
 
   final val isJVM = false
