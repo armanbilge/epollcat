@@ -22,6 +22,7 @@ import epollcat.unsafe.EpollRuntime
 
 import scala.concurrent.duration._
 
+@deprecated("test deprecated features", "forever")
 class EventPollingExecutorSchedulerSuite extends EpollcatSuite {
 
   test("installs globally") {

@@ -30,6 +30,7 @@ import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.nio.channels.CompletionHandler
 import java.util.concurrent.Future
+import scala.annotation.nowarn
 import scala.scalanative.annotation.stub
 import scala.scalanative.libc.errno
 import scala.scalanative.meta.LinktimeInfo
@@ -207,7 +208,7 @@ final class EpollAsyncServerSocketChannel private (fd: Int)
 object EpollAsyncServerSocketChannel {
 
   def open(): EpollAsyncServerSocketChannel = {
-    EpollRuntime.global.compute match {
+    (EpollRuntime.global.compute: @nowarn) match {
       case epoll: EventPollingExecutorScheduler =>
         val fd = SocketHelpers.mkNonBlocking()
         val ch = new EpollAsyncServerSocketChannel(fd)

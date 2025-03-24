@@ -20,13 +20,13 @@ import cats.effect.IO
 import cats.effect.Resource
 import epollcat.unsafe.EventNotificationCallback
 import epollcat.unsafe.EventPollingExecutorScheduler
-import epollcat.unsafe.EpollRuntime
 
 import scala.scalanative.unsafe._
 import scala.scalanative.unsigned._
 import scala.scalanative.posix.fcntl._
 import scala.scalanative.posix.unistd._
 
+@deprecated("test deprecated features", "forever")
 class MonitorSuite extends EpollcatSuite {
 
   class Pipe private (val readFd: Int, val writeFd: Int)
@@ -59,7 +59,7 @@ class MonitorSuite extends EpollcatSuite {
   }
 
   test("monitor a pipe") {
-    val scheduler = EpollRuntime.global.scheduler.asInstanceOf[EventPollingExecutorScheduler]
+    val scheduler = munitIORuntime.scheduler.asInstanceOf[EventPollingExecutorScheduler]
 
     Pipe.make.use { pipe =>
       IO.async_[Unit] { cb =>

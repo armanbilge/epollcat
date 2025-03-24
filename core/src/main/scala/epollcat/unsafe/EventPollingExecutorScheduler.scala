@@ -19,11 +19,13 @@ package unsafe
 
 import cats.effect.unsafe.PollingExecutorScheduler
 
+import scala.annotation.nowarn
 import scala.scalanative.annotation.alwaysinline
 import scala.scalanative.meta.LinktimeInfo
 import scala.scalanative.runtime._
 import scala.scalanative.unsafe._
 
+@nowarn
 private[epollcat] abstract class EventPollingExecutorScheduler(pollEvery: Int)
     extends PollingExecutorScheduler(pollEvery) {
 
