@@ -1,3 +1,6 @@
+> [!WARNING]
+> epollcat is deprecated. Cats Effect v3.6.0 and FS2 v3.12.0 now support network I/O on Scala Native out-of-the-box.
+
 # epollcat
 
 An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions/3070) for [Cats Effect](https://typelevel.org/cats-effect/) on [Scala Native](https://scala-native.org/), implemented with the [`epoll` API](https://man7.org/linux/man-pages/man7/epoll.7.html) on Linux and the [`kqueue` API](https://en.wikipedia.org/wiki/Kqueue) on macOS.
@@ -5,7 +8,7 @@ An [I/O-integrated runtime](https://github.com/typelevel/cats-effect/discussions
 The primary goal of this project is to provide implementations for Java network I/O APIs used in the [fs2-io](https://fs2.io/#/io) library so that its `fs2.io.net` package can cross-build for Scala Native. This in turn enables projects such as [http4s Ember](https://http4s.org/v0.23/docs/integrations.html#ember) and [Skunk](https://typelevel.org/skunk/) to cross-build for Native as well.
 
 ```scala
-libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.4"
+libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.7"
 ```
 
 ## FAQ
