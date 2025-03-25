@@ -20,7 +20,7 @@ import cats.effect.IOApp
 import cats.effect.unsafe.IORuntime
 import epollcat.unsafe.EpollRuntime
 
-@deprecated("Upgrade to Cats Effect v3.6.0 and use IOApp", "0.1.7")
+@deprecated("Upgrade to Cats Effect v3.6.0 / FS2 v3.12.0 and use IOApp", "0.1.7")
 trait EpollApp extends IOApp {
 
   override final lazy val runtime: IORuntime = {
@@ -40,7 +40,7 @@ trait EpollApp extends IOApp {
 
 }
 
-@deprecated("Upgrade to Cats Effect v3.6.0 and use IOApp", "0.1.7")
+@deprecated("Upgrade to Cats Effect v3.6.0 / FS2 v3.12.0 and use IOApp", "0.1.7")
 object EpollApp {
   trait Simple extends IOApp.Simple with EpollApp
 }
